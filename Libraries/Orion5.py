@@ -3,7 +3,6 @@ import queue
 import serial
 import time
 import datetime as dt
-from packet_test import bytes_to_hex_bytes_string
 import copy
 
 

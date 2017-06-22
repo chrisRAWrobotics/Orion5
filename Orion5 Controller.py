@@ -10,16 +10,29 @@ from pyglet.window import key
 import Orion5
 import copy
 
-from ctypes import pointer, sizeof
 print('Controls:\nRight - Extends tool point',
       '\nLeft - Retracts tool point\nUp - Tool point up',
-      '\nDown - Tool point down\nHome - Attack angle down'
-      '\nPageUp - Attack angle up\nPageDown - Claw close'
-      '\nEND - Claw open\nDelete - Attack distance out'
-      '\nBackspace - Attack distance in'
-      '\nCTRL_Left - Slew left\nCTRL_Right - Slew right'
-      '\nCTRL_END - Read from arm'
-      '\nCTRL_HOME - Write to arm')
+      '\nDown - Tool point down\nHome - Attack angle down',
+      '\nPageUp - Attack angle up\nPageDown - Claw close',
+      '\nEND - Claw open\nDelete - Attack distance out',
+      '\nBackspace - Attack distance in',
+      '\nCTRL_Left - Slew left\nCTRL_Right - Slew right',
+      '\nCTRL_END - Read from arm',
+      '\nCTRL_HOME - Write to arm',
+      '\nA - toggle - Put the visualiser into "Arm controls model" mode',
+      '\nQ - toggle - Put the visualiser into "Model controls arm" mode',
+      '\nMOUSE CONTROLS'
+      '\nLeft click drag rotates model by X/Y axis',
+      '\nShift+ Left click drag rotates model by X/Z axis',
+      '\nRight click drag moves the model around',
+      '\nEXPERIMENTAL BELOW',
+      '\nD - Record position to current sequence in memory',
+      '\nE - Force current position to be current sequence element',
+      '\nS - cycle sequence toward the end (wraps)',
+      '\nW - Cycle sequence toward the start (wraps)',
+      '\nC - Save current sequence set to the txt file in the sequence folder TODOs here',
+      '\nX - Read the sequence in the sequence.txt in the sequence folder TODOs here',
+      '\nZ - Play sequence currently loaded...  major TODOs as it relies as it needs\n the joint to get within X of angle to tick the sequence as\n having been reached')
 
 ZONEWIDTH = 25
 WindowProps = [800, 800]
@@ -475,9 +488,6 @@ class Window(pyglet.window.Window):
             self._servoPositions['Shoulder'] = 0.0 + self._servoPositions['Shoulder']
             self._servoPositions['Elbow'] = self._armVARS['Elbow Angle'] - self._servoPositions['Shoulder'] + 180.0
             self._servoPositions['Wrist'] = self._armVARS['Attack Angle'] - self._armVARS['Elbow Angle'] + 180.0
-
-#Models = PolyRead(Models, 'Arm.Models')
-#PolyWrite(Models, 'Arm.Models')
 
 def Main():
     global ORION5
