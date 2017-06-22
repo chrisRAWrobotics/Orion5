@@ -10,30 +10,30 @@ Libraries directory contains `Orion5.m`, this MATLAB library interfaces with a P
 MATLAB library is still under development and robustness of interface will improve in a future revision.  
 The library pings the Python server every second if no other library functions are being called, this is like a watchdog timer, if Python server doesn't hear anything for 5 seconds, it will return to waiting for a new connection.  
 
-##### Create an instance of the library
+#### Create an instance of the library
 ```matlab
 orion = Orion5()
 ```
 
-##### Read a joint position
+#### Read a joint position
 This will return an angle in degrees in the range 0-359
 ```matlab
 shoulder_pos = orion.getJointPosition(Orion5.SHOULDER)
 ```
 
-##### Set a joint position
+#### Set a joint position
 This takes an angle in degrees in the range 0-359
 ```matlab
 orion.setJointPosition(Orion5.ELBOW, 135)
 ```
 
-##### Set a time to position
+#### Set a time to position
 This function will set the speed such that the joint will arrive at the goal position in `time` seconds
 ```matlab
 orion.setJointTimeToPosition(Orion5.SHOULDER, time)
 ```
 
-##### Turn on/off torque
+#### Turn on/off torque
 ```matlab
 % turn on
 orion.setJointTorqueEnable(Orion5.WRIST, 1)
