@@ -2,13 +2,14 @@
 
 ## MATLAB Library
 Libraries directory contains `Orion5.m`, this MATLAB library interfaces with a Python server that will need to be launched before using the MATLAB library.
-1. Install dependancies for Python server using `pip3 install pyserial`.
+1. Install dependencies for Python server using `pip3 install pyserial`.
 2. Launch the Python server using `python3 Orion5_Server.py`.
 3. Now when the `Orion5.m` class is used in MATLAB it will interface with Python.
 
 ### Basic Usage
 MATLAB library is still under development and robustness of interface will improve in a future revision.  
 The library pings the Python server every second if no other library functions are being called, this is like a watchdog timer, if Python server doesn't hear anything for 5 seconds, it will return to waiting for a new connection.  
+The MATLAB script `test_script.m` demonstrates some of the functionality.
 
 #### Create an instance of the library
 ```matlab
