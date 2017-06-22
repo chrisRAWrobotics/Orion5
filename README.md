@@ -1,5 +1,54 @@
 # Orion5
 
+## MATLAB Library
+Libraries directory contains `Orion5.m`, this MATLAB library interfaces with a Python server that will need to be launched before using the MATLAB library.
+1. Install dependancies for Python server using `pip3 install pyserial`.
+2. Launch the Python server using `python3 Orion5_Server.py`.
+3. Now when the `Orion5.m` class is used in MATLAB it will interface with Python.
+
+### Basic Usage
+MATLAB library is still under development and robustness of interface will improve in a future revision.  
+The library pings the Python server every second if no other library functions are being called, this is like a watchdog timer, if Python server doesn't hear anything for 5 seconds, it will return to waiting for a new connection.  
+
+##### Create an instance of the library
+```matlab
+orion = Orion5()
+```
+
+##### Read a joint position
+This will return an angle in degrees in the range 0-359
+```matlab
+shoulder_pos = orion.getJointPosition(Orion5.SHOULDER)
+```
+
+##### Set a joint position
+This takes an angle in degrees in the range 0-359
+```matlab
+orion.setJointPosition(Orion5.ELBOW, 135)
+```
+
+##### Set a time to position
+This function will set the speed such that the joint will arrive at the goal position in `time` seconds
+```matlab
+orion.setJointTimeToPosition(Orion5.SHOULDER, time)
+```
+
+##### Turn on/off torque
+```matlab
+% turn on
+orion.setJointTorqueEnable(Orion5.WRIST, 1)
+
+% turn off
+orion.setJointTorqueEnable(Orion5.BASE, 0)
+```
+
+### Issues
+* If MATLAB code calling the library crashes, the *keep alive* ping will keep happening in the background. Can stop this by running `<library_instance>.stop()` in MATLAB console.
+* Not all functionality is present yet, however structure is in place ready for this development.
+* Values are only in units of degrees from 0-360, future revision will allow radians and negative angles.
+
+## Python Visualiser Controller
+
 ### Libraries and versions used:
 * Python 3.6
 * pip
