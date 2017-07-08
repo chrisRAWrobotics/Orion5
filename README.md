@@ -1,69 +1,100 @@
-Tools used:
-    Github
-    Pycharm
-Libraries and versions used:
-    Python 3.6
-    pip
-    wheel
-    pyserial (just try pip them, I recall having an issue)
-    serial (just try pip them, I recall having an issue)
-    pyglet
+# Orion5
 
-How to install things
-Often we have multiple versions of python installed on our computers, so therefore the default 'pip' is always the
-    older version of python, which is bloody annoying unless you have unpathed 2.7 and have pathed 3.5/3.6.....    best
-    way to be sure is goto the location for IDLE for the version you wish to add libraries (we are working in V3.6),
-    go into the scripts folder there and open a command window. Use 'pip install library_name', you'll need a whole bunch,
-    your IDE will knock back the ones you need
-'pip install pyglet, numpy, scipy, pandas, openG, pyserial, serial'  - not sure whatelse...
-    need to come back and edit this
+## MATLAB Library
+Libraries directory contains `Orion5.m`, this MATLAB library interfaces with a Python server that will need to be launched before using the MATLAB library.
+1. Install dependencies for Python server using `pip3 install pyserial`.
+2. Launch the Python server using `python3 Orion5_Server.py`.
+3. Now when the `Orion5.m` class is used in MATLAB it will interface with Python.
 
-Controls:
-    Right - Extends tool point
-    Left - Retracts tool point
-    Up - Tool point up
-    Down - Tool point down
-    Home - Attack angle down
-    PageUp - Attack angle up
-    PageDown - Claw close
-    END - Claw open
-    Delete - Attack distance out
-    Backspace - Attack distance in
-    CTRL_Left - Slew left
-    CTRL_Right - Slew right
-    CTRL_END - Read from arm
-    CTRL_HOME - Write to arm
-    A - toggle - Put the visualiser into "Arm controls model" mode
-    Q - toggle - Put the visualiser into "Model controls arm" mode
-MOUSE CONTROLS
-    Left click drag rotates model by X/Y axis
-    Shift+ Left click drag rotates model by X/Z axis
-    Right click drag moves the model around
-EXPERIMENTAL BELOW
-    D - Record position to current sequence in memory
-    E - Force current position to be current sequence element
-    S - cycle sequence toward the end (wraps)
-    W - Cycle sequence toward the start (wraps)
-    C - Save current sequence set to the txt file in the sequence folder TODOs here
-    X - Read the sequence in the sequence.txt in the sequence folder TODOs here
-    Z - Play sequence currently loaded...  major TODOs as it relies as it needs
-        the joint to get within X of angle to tick the sequence as
-        having been reached
+### Basic Usage
+MATLAB library is still under development and robustness of interface will improve in a future revision.  
+The library pings the Python server every second if no other library functions are being called, this is like a watchdog timer, if Python server doesn't hear anything for 5 seconds, it will return to waiting for a new connection.  
+The MATLAB script `test_script.m` demonstrates some of the functionality.
 
-TODO: collision engine...
-To do this I have several ideas in mind, a series of parametric limit fields driven from turret outward, so 5 of them.
-First would have no limits... user defined spaces might be possible, but not scalable, best approach is proper STL
-collision detection. So TURRET field with no limits.
-Then we goto the SHOULDER and it would only have limits when ground was defined and depending on the angle of the
-turret as a slice algo with the two 2d shapes of the top of the bases triangle and the outer edge of the arm closest
-to it. Shoulder would of course have the limits wherein the gearbox ratio overcomes the position of the shoulder...
-complex
-Elbow following this would have a limit if the ground was defined.. again solved by plane slices interfacing..   it
-would also have a 2d solvable collision limit with the bicep at the elbow...  and the case of the turret would have
-to form part of that...
-Wrist has the obvious limits with relation to the forearm, also can do slice limits with ground plane, here however
-it gets complex with a parametric field against the robot body etc...   really need a proper STL collision system to
-solve this properly
+#### Create an instance of the library
+```matlab
+orion = Orion5()
+```
 
-hmm, perhaps a nodal system of collision spheres for each 'object', where the first layer is a sphere centered at a
-centroid either the normal avg or maybe a best fit sphere. then next layer down is spheres half that size
+#### Read a joint position
+This will return an angle in degrees in the range 0-359
+```matlab
+shoulder_pos = orion.getJointPosition(Orion5.SHOULDER)
+```
+
+#### Set a joint position
+This takes an angle in degrees in the range 0-359
+```matlab
+orion.setJointPosition(Orion5.ELBOW, 135)
+```
+
+#### Set a time to position
+This function will set the speed such that the joint will arrive at the goal position in `time` seconds
+```matlab
+orion.setJointTimeToPosition(Orion5.SHOULDER, time)
+```
+
+#### Turn on/off torque
+```matlab
+% turn on
+orion.setJointTorqueEnable(Orion5.WRIST, 1)
+
+% turn off
+orion.setJointTorqueEnable(Orion5.BASE, 0)
+```
+
+### Issues
+* If MATLAB code calling the library crashes, the *keep alive* ping will keep happening in the background. Can stop this by running `<library_instance>.stop()` in MATLAB console.
+* Not all functionality is present yet, however structure is in place ready for this development.
+* Values are only in units of degrees from 0-360, future revision will allow radians and negative angles.
+
+## Python Visualiser Controller
+
+### Libraries and versions used:
+* Python 3.6
+* pip
+* wheel
+* pyserial
+* pyglet
+* numpy
+* scipy
+
+### How to install things
+Often we have multiple versions of python installed on our computers, so therefore the default 'pip' is always the older version of python, which is annoying.
+Best way to be sure is goto the location of IDLE for the version you wish to add libraries (we are working in Python 3.6), go into the scripts folder there and open a command window `pip install <library_name>`
+
+```
+pip install wheel, pyglet, numpy, scipy, pyserial
+```
+
+### Controls:
+* Right - Extends tool point
+* Left - Retracts tool point
+* Up - Tool point up
+* Down - Tool point down
+* Home - Attack angle down
+* PageUp - Attack angle up
+* PageDown - Claw close
+* END - Claw open
+* Delete - Attack distance out
+* Backspace - Attack distance in
+* CTRL_Left - Slew left
+* CTRL_Right - Slew right
+* CTRL_END - Read from arm
+* CTRL_HOME - Write to arm
+* A - toggle - Put the visualiser into "Arm controls model" mode
+* Q - toggle - Put the visualiser into "Model controls arm" mode
+
+### Mouse Controls
+* Left click drag rotates model by X/Y axis
+* Shift + Left click drag rotates model by X/Z axis
+* Right click drag pans the model around
+
+### Experimental Controls
+* D - Record position to current sequence in memory
+* E - Force current position to be current sequence element
+* S - cycle sequence toward the end (wraps)
+* W - Cycle sequence toward the start (wraps)
+* C - Save current sequence set to the txt file in the sequence folder TODOs here
+* X - Read the sequence in the sequence.txt in the sequence folder TODOs here
+* Z - Play sequence currently loaded... Major TODOs as it relies as it needs the joint to get within X of angle to tick the sequence as having been reached
