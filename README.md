@@ -50,3 +50,20 @@ EXPERIMENTAL BELOW
         the joint to get within X of angle to tick the sequence as
         having been reached
 
+TODO: collision engine...
+To do this I have several ideas in mind, a series of parametric limit fields driven from turret outward, so 5 of them.
+First would have no limits... user defined spaces might be possible, but not scalable, best approach is proper STL
+collision detection. So TURRET field with no limits.
+Then we goto the SHOULDER and it would only have limits when ground was defined and depending on the angle of the
+turret as a slice algo with the two 2d shapes of the top of the bases triangle and the outer edge of the arm closest
+to it. Shoulder would of course have the limits wherein the gearbox ratio overcomes the position of the shoulder...
+complex
+Elbow following this would have a limit if the ground was defined.. again solved by plane slices interfacing..   it
+would also have a 2d solvable collision limit with the bicep at the elbow...  and the case of the turret would have
+to form part of that...
+Wrist has the obvious limits with relation to the forearm, also can do slice limits with ground plane, here however
+it gets complex with a parametric field against the robot body etc...   really need a proper STL collision system to
+solve this properly
+
+hmm, perhaps a nodal system of collision spheres for each 'object', where the first layer is a sphere centered at a
+centroid either the normal avg or maybe a best fit sphere. then next layer down is spheres half that size

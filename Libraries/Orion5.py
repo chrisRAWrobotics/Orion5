@@ -137,16 +137,14 @@ class SerialThread(threading.Thread):
                         else:
                             self._checker[0] += 1
                         self.processSend((ID, item[1], JointObj.getVariable(itemSet[0], item[0]), self._checker[0]))
-                        while True:
-                            while self.uart.in_waiting >= 3:
-                                self.processRead()
+                        while self.uart.in_waiting >= 3:
+                            self.processRead()
+                        else:
+                            debug('End Read')
+                            if self._checker[0] == self._checker[1]:
+                                JointObj.TickVariable(itemSet[0], item[0])
                             else:
-                                debug('End Read')
-                                if self._checker[0] == self._checker[1]:
-                                    JointObj.TickVariable(itemSet[0], item[0])
-                                    break
-                                else:
-                                    self.processSend((ID, item[1], JointObj.getVariable(itemSet[0], item[0]), self._checker[0]))
+                                self.processSend((ID, item[1], JointObj.getVariable(itemSet[0], item[0]), self._checker[0]))
 
     def processSend(self, command):
         packet = self.buildPacket(command)
