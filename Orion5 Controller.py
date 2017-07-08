@@ -119,6 +119,8 @@ SEQUENCEBASENAME = 'Sequence'
 SEQUENCEEXTENSION = '.txt'
 MAXSERVOSPEEDS = [{'Turret':200.0,'Shoulder':300.0,'Elbow':400.0,'Wrist':300.0,'Claw':200.0}, ['Turret','Shoulder','Elbow','Wrist','Claw']]
 
+#Hah
+
 def DifferentialWrapped360(arg1, arg2):
     retValue = arg1-arg2
     if retValue > 180:
