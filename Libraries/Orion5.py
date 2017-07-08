@@ -5,6 +5,7 @@ import time
 import datetime as dt
 import copy
 
+# cool and also nice
 
 DEBUG = False
 DEBUG_MODE = 'PRINT'
