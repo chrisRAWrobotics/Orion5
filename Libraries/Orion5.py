@@ -4,6 +4,7 @@ import serial
 import time
 import datetime as dt
 import copy
+import struct
 
 # cool and also nice
 
@@ -33,22 +34,55 @@ class ErrorIDs:
 class ControlModes:
     SPEED, TIME, WHEEL = range(3)
 
-class JointVars:
+class JointVarsOld:
     CW_LIMIT, CCW_LIMIT, MARGIN, SLOPE, PUNCH, TORQUE_ENABLE,\
         GOAL_POS, SPEED, MODE, CURRENT_POS, CURRENT_SPEED, CURRENT_LOAD, CHECKER = range(13)
 
+class JointVars:
+    CURRENT_POS, CURRENT_SPEED, CURRENT_LOAD, GOAL_POS, SPEED, \
+        TORQUE_ENABLE, CW_SLOPE, CCW_SLOPE, CW_MARGIN, CCW_MARGIN, \
+        PUNCH, CW_LIMIT, CCW_LIMIT, LED, MODE = range(15)
+
 class SerialThread(threading.Thread):
+    '''
+    Need to create an incoming and outgoing dynamic buffer.
+    
+    The main loop should first check if the usb is connected, if not then it should attempt connection
+    If the main loop is connected, then the main functionality ensues, disconnection should be handled 
+    dynamically.
+    In the main loop one of the modules should pull all of the incomming USB buffer into the software buffer
+    A module after that one should pull all meaningful packets out of the software buffer
+    Following this there is the outbound comms...   this will get complex:
+    There should be an outgoing buffer, it will be something like [timeout, [bytes]], when a set of bytes 
+    is sent through, the timeout is set to current system time or whatever. After this we have almost start 
+    condition again; all messages to be sent will be polled up in this buffer, so the main loops requests 
+    to the ORION5 will go into here, any checkers to be returned will go into here, etc. If the buffer gets
+     larger than 64bytes? then send the first/last... dyslexia 64bytes through and reset the timeout. If
+     the timeout value vs the now time exceeds a certain time, then push what is in there through.
+     
+     The Checker...  The PC will send checker bytes in its packets, they will be handled the same on both 
+     pc and ORION5 sides...  When the pc side here receives a packet, it will take the checker and add it
+     to a registry of checkers. a seperate module in the main loop called the bureaucrat, will look at this 
+     registry and build 'a' packet or multiple packets (if greater than 64bytes or some arbitrary number), 
+     of checkerlist packettypes which it will dump into the outbound buffer.
+     
+     when the pc receives a checkerlist packettype, it will go through the flag variable in the joint 
+     dictionaries and
+    '''
     def __init__(self, orion5_reference, serialName, sendQueue, lock):
         threading.Thread.__init__(self)
         self._outboxIterator = [['misc variables', [['cwAngleLimit',JointVars.CW_LIMIT],
-                                                   ['ccwAngleLimit',JointVars.CCW_LIMIT],
-                                                   ['margin', JointVars.MARGIN],
-                                                   ['slope', JointVars.SLOPE],
-                                                   ['punch', JointVars.PUNCH]]],
+                                                    ['ccwAngleLimit',JointVars.CCW_LIMIT],
+                                                    ['cwMargin', JointVars.CW_MARGIN],
+                                                    ['cwwMargin', JointVars.CCW_MARGIN],
+                                                    ['cwSlope', JointVars.CW_SLOPE],
+                                                    ['cwwSlope', JointVars.CCW_SLOPE],
+                                                    ['punch', JointVars.PUNCH]]],
                                ['control variables', [['enable',JointVars.TORQUE_ENABLE],
                                                       ['goalPosition', JointVars.GOAL_POS],
                                                       ['desiredSpeed', JointVars.SPEED],
                                                       ['controlMode', JointVars.MODE]]]]
+        self._iter = [0,0,0]
         self.arm = orion5_reference
         self.sendQueue = sendQueue
         self.lock = lock
@@ -103,111 +137,138 @@ class SerialThread(threading.Thread):
             debug("SerialThread: Thread already stopped")
 
     def main(self):
-        self.processSend((1, JointVars.CHECKER, self._checker[0], self._checker[0]))
+        #self.processSend((1, JointVars.CHECKER, self._checker[0], self._checker[0]))
         while self.running:
             time.sleep(.2)
-            if self._checker[0] == self._checker[1]:
-                #Send all the updates to the ARM
-                self.SendUpdate()
-                self.CheckerAdvance()
-            while not(self.processSend((1, JointVars.CHECKER, self._checker[0], self._checker[0]))):
-                debug('Failed to send checker')
-            while self.uart.in_waiting >= READ_PACKET_LEN:
-                self.processRead()
-            else:
-                debug('End Read')
-            #time.sleep(QUEUE_SLEEP_TIME)
+
+            for i in range(20):
+                self._iter[2] += 1
+                if len(self._outboxIterator[self._iter[1]][1]) <= self._iter[2]:
+                    self._iter[2] = 0
+                    self._iter[1] += 1
+                    if self._iter[1] > 1:
+                        self._iter[1] = 0
+                        self._iter[0] += 1
+                        if self._iter[0] > 4:
+                            self._iter[0] = 0
+                jointPTR = self.arm.joints[self._iter[0]]
+                itemSETPTR = self._outboxIterator[self._iter[1]]
+                itemPTR = self._outboxIterator[self._iter[1]][1][self._iter[2]]
+                if jointPTR.checkVariable(itemSETPTR[0], itemPTR[0]):
+                    ID = jointPTR.getVariable('constants', 'ID')
+                    self.processSend((ID, itemPTR[1], jointPTR.getVariable(itemSETPTR[0], itemPTR[0]), self._checker[0]))
+                    break
+            self.processRead()
         self.SendUpdate()
 
     def CheckerAdvance(self):
         # Advance the Checker
         if self._checker[0] >= 255:
-            self._checker[0] = 0
+            self._checker[0] = 2
         else:
             self._checker[0] += 1
 
-    def SendUpdate(self):
-        # Send all the updates to the ARM
-        for JointObj in self.arm.joints:
-            for itemSet in self._outboxIterator:
-                for item in itemSet[1]:
-                    if JointObj.checkVariable(itemSet[0], item[0]):
-                        ID = JointObj.getVariable('constants', 'ID')
-                        if self._checker[0] >= 255:
-                            self._checker[0] = 0
-                        else:
-                            self._checker[0] += 1
-                        self.processSend((ID, item[1], JointObj.getVariable(itemSet[0], item[0]), self._checker[0]))
-                        while self.uart.in_waiting >= 3:
-                            self.processRead()
-                        else:
-                            debug('End Read')
-                            if self._checker[0] == self._checker[1]:
-                                JointObj.TickVariable(itemSet[0], item[0])
-                            else:
-                                self.processSend((ID, item[1], JointObj.getVariable(itemSet[0], item[0]), self._checker[0]))
-
     def processSend(self, command):
-        packet = self.buildPacket(command)
+        #retValue = True
+        #BuildPacket(0x69, 4, [0, 3, (desiredPos & 0xFF), (desiredPos & 0xFF00) >> 8])
+        packet = self.BuildPacket(0, 4, [command[0], command[1], (command[2] & 0xFF), (command[2] & 0xFF00) >> 8]) #need to add checker in???  XXXX
+        #retValue = retValue and self.sendPacket(packet)
+        #packet = self.buildPacket(command)
         retValue = self.sendPacket(packet)
         time.sleep(.01)
         return retValue
 
-    def processRead(self):
-        secondByte = None
-        while True:
-            try:
-                firstByte = list(self.uart.read(1))[0]
-            except:
-                debug('could not read firstByte')
-                return False
-            if firstByte == 240:
-                try:
-                    secondByte = list(self.uart.read(1))[0]
-                except:
-                    debug('Could not read secondByte')
-                if secondByte == 240:
-                    break
-            debug('Buffer Bytes   ' + str(firstByte)+'   '+str(secondByte))
-        debug('Success Buffer Bytes   ' + str(firstByte) +'   '+ str(secondByte))
-        try:
-            header = list(self.uart.read(2))
-            packetType = ((header[0] & 0xF0) >> 4)
-            debug('Header   '+str(header)+'  Packet Type  '+str(packetType))
-            if packetType == 0:
-                # < Packet_type errorID > < jointID speedH > < speedM speedL > < loadH loadM > < loadL posH > < posM posL >
-                packet = list(self.uart.read(4))
-                debug('The packet held: '+str(packet)+str({'jointID': ((header[1] & 0xF0) >> 4),
-                                   'errorID': (header[0] & 0x0F),
-                                   'speed': (header[1] << 8) | packet[0],
-                                   'load': (packet[1] << 4) | ((packet[2] & 0xF0) >> 4),
-                                   'pos': ((packet[2] & 0x0F) << 8) | packet[3]}))
-                self.updateJoints({'jointID': ((header[1] & 0xF0) >> 4),
-                                   'errorID': (header[0] & 0x0F),
-                                   'speed': (header[1] << 8) | packet[0],
-                                   'load': (packet[1] << 4) | ((packet[2] & 0xF0) >> 4),
-                                   'pos': ((packet[2] & 0x0F) << 8) | packet[3]})
-            elif packetType == 1:
-                # < Packet_type errorID > < Checker >
-                self._checker[1] = header[1] #list(self.uart.read(1))[0]
-                debug('Checker  '+str(self._checker))
-            '''elif header[0] == 240:
-                packet = list(self.uart.read(2))
-                #The packetType number will stipulate which variable is being read... do things here XXXX'''
-        except:
-            debug('Could not read')
+    def RequestInfo(self):
+        self.sendPacket(self.BuildPacket(1, 2, [0, 0]))
+        self.sendPacket(self.BuildPacket(1, 2, [0, 1]))
+        self.sendPacket(self.BuildPacket(1, 2, [0, 2]))
 
-    def buildPacket(self, data):
-        # <0000 0000> = 1 byte
-        # send packets look like: <jointID varID> <varH> <varL>
-        packet = [0] * 6
-        packet[0] = (240 & 0x00FF)
-        packet[1] = (240 & 0x00FF)
-        packet[2] = ((data[0] & 0x000F) << 4) | (data[1] & 0x000F)
-        packet[3] = ((data[2] & 0xFF00) >> 8)
-        packet[4] = (data[2] & 0x00FF)
-        packet[5] = (data[3] & 0x00FF)
-        debug("SerialThread: processSend: sent " + str(packet) + ' ' + str(data))
+    def GetChecksum(self, packet):
+        checksum = 0
+        for i in range(2, len(packet)):
+            checksum += packet[i]
+            if checksum > 0xFF:
+                checksum -= 256
+        return (~checksum) & 0xFF
+
+    def ProcessRead(self):
+        valid = 0
+        state = 0
+        reset = 0
+        byte = 0
+        packetType1 = 0
+        packetType2 = 0
+        data = []
+        while True:
+            if s.in_waiting == 0:
+                break
+            try:
+                byte = struct.unpack('B', s.read(1))[0]
+            except Exception as e:
+                print(e)
+                print('could not read byte')
+                break
+
+            if state < 2:
+                # grab header bytes
+                if byte == 0xF0:
+                    state += 1
+                else:
+                    reset = 1;
+            elif state == 2:
+                # grab packet type 1
+                packetType1 = byte
+                state += 1
+            elif state == 3:
+                # grab packet type 2
+                packetType2 = byte
+                state += 1
+            elif state == 4:
+                # grab data bytes
+                if len(data) == packetType2:
+                    state += 1
+                else:
+                    data.append(byte)
+            if state == 5:
+                # get checksum
+                valid = (self.GetChecksum([0xFF, 0xFF, packetType1, packetType2] + data) == byte)
+                if not valid:
+                    reset = 1
+
+            if valid:
+                break
+
+            if reset:
+                # reset state vars
+                valid = 0
+                state = 0
+                reset = 0
+                data = []
+
+        if valid:
+            value = 0
+            if len(data) == 3:
+                value = struct.unpack('B', data[2])[0]
+            elif len(data) == 4:
+                value = struct.unpack('<H', bytes(data[2:4]))[0]
+
+            self.arm.joints[data[0]].setVariable('misc variables', 'error', 0)
+            if data[1] == 0:
+                self.arm.joints[data[0]].setVariable('feedback variables', 'currentPosition', value)
+            elif data[1] == 1:
+                self.arm.joints[data[0]].setVariable('feedback variables', 'currentVelocity', value)
+            elif data[1] == 2:
+                self.arm.joints[data[0]].setVariable('feedback variables', 'currentLoad', value)
+
+    def BuildPacket(self, type, length, data):
+        # <0xF0> <0xF0> <packetType1> <packetType2> <data 1> ... <data n> <checksum>
+        hexReg = [0x69, 0x36]
+        packet = [0xF0, 0xF0, hexReg[type], length]
+        for i in range(len(data)):
+            packet.append(data[i])
+        self.CheckerAdvance()
+        packet.append(self._checker[0])
+        packet.append(self.GetChecksum(packet))
         return bytes(packet)
 
     def sendPacket(self, packet):
@@ -223,31 +284,33 @@ class SerialThread(threading.Thread):
 
     def updateJoints(self, data):
         # TODO: make functions for conversion e.g. G15 pos to angle
-        self.arm.joints[data['jointID'] - 1].setVariable('misc variables', 'error', data['errorID'])
-        self.arm.joints[data['jointID'] - 1].setVariable('feedback variables', 'currentVelocity', data['speed'])
-        self.arm.joints[data['jointID'] - 1].setVariable('feedback variables', 'currentLoad', data['load'])
-        self.arm.joints[data['jointID'] - 1].setVariable('feedback variables', 'currentPosition', data['pos'])
+        self.arm.joints[data['jointID']].setVariable('misc variables', 'error', data['errorID'])
+        self.arm.joints[data['jointID']].setVariable('feedback variables', 'currentVelocity', data['speed'])
+        self.arm.joints[data['jointID']].setVariable('feedback variables', 'currentLoad', data['load'])
+        self.arm.joints[data['jointID']].setVariable('feedback variables', 'currentPosition', data['pos'])
 
 class Joint(object):
     def __init__(self, name, ID, cwAngleLimit, ccwAngleLimit, margin, slope, punch, speed, mode):
         # TODO: make all vars private and create getters/setters
         # constants
         self._jointLock = threading.Lock()
-        self._datam = {'constants':{'ID':[ID, True],
-                                    'name':[name, True]},
-                       'misc variables':{'cwAngleLimit':[cwAngleLimit, True],
-                                         'ccwAngleLimit':[ccwAngleLimit, True],
-                                         'margin':[margin, True],
-                                         'slope':[slope, True],
-                                         'punch':[punch, True],
-                                         'error':[None, False]},
-                       'control variables':{'enable':[0, True],
-                                            'goalPosition':[None, False],
-                                            'desiredSpeed':[speed, True],
-                                            'controlMode':[mode, True]},
-                       'feedback variables':{'currentPosition':[None, False],
-                                             'currentVelocity':[None, False],
-                                             'currentLoad':[None, False]}}
+        self._datam = {'constants':{'ID':[ID, 1],
+                                    'name':[name, 1]},
+                       'misc variables':{'cwAngleLimit':[cwAngleLimit, 1],
+                                         'ccwAngleLimit':[ccwAngleLimit, 1],
+                                         'cwMargin':[margin, 1],
+                                         'cwwMargin':[margin, 1],
+                                         'cwSlope':[slope, 1],
+                                         'cwwSlope':[slope, 1],
+                                         'punch':[punch, 1],
+                                         'error':[None, 0]},
+                       'control variables':{'enable':[0, 1],
+                                            'goalPosition':[None, 0],
+                                            'desiredSpeed':[speed, 1],
+                                            'controlMode':[mode, 1]},
+                       'feedback variables':{'currentPosition':[None, 0],
+                                             'currentVelocity':[None, 0],
+                                             'currentLoad':[None, 0]}}
 
     def init(self):
         self.setTorqueEnable(0)
@@ -261,7 +324,7 @@ class Joint(object):
 
     def setVariable(self, id1, id2, datum):
         self._jointLock.acquire()
-        self._datam[id1][id2] = [datum, True]
+        self._datam[id1][id2] = [datum, 1]
         self._jointLock.release()
         return
 
@@ -279,7 +342,10 @@ class Joint(object):
 
     def TickVariable(self, id1, id2):
         self._jointLock.acquire()
-        self._datam[id1][id2][1] = not self._datam[id1][id2][1]
+        if self._datam[id1][id2][1] == 0:
+            self._datam[id1][id2][1] = 1
+        else:
+            self._datam[id1][id2][1] = 0
         self._jointLock.release()
         return
 
