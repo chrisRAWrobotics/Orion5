@@ -100,7 +100,7 @@ class SerialThread(threading.Thread):
             debug("SerialThread: Thread will immediately exit")
             self.stop()
 
-    def SerialSController(self, Command):
+    '''def SerialSController(self, Command):
         if Command == 'Start':
             try:
                 self.uart = serial.Serial(port=serialName,
@@ -119,7 +119,7 @@ class SerialThread(threading.Thread):
             self.uart = None
             print('yolo')
         elif Command == 'Status':
-            print('yolo')
+            print('yolo')'''
 
     def run(self):
         if self.uart is None:
@@ -200,10 +200,10 @@ class SerialThread(threading.Thread):
         packetType2 = 0
         data = []
         while True:
-            if s.in_waiting == 0:
+            if self.uart.in_waiting == 0:
                 break
             try:
-                byte = struct.unpack('B', s.read(1))[0]
+                byte = struct.unpack('B', self.uart.read(1))[0]
             except Exception as e:
                 print(e)
                 print('could not read byte')
