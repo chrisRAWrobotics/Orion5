@@ -138,8 +138,10 @@ class SerialThread(threading.Thread):
 
     def main(self):
         #self.processSend((1, JointVars.CHECKER, self._checker[0], self._checker[0]))
+
+        time.sleep(2)
+
         while self.running:
-            # time.sleep(.2)
 
             self.RequestInfo()
 
