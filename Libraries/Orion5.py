@@ -6,8 +6,6 @@ import datetime as dt
 import copy
 import struct
 
-# cool and also nice, not
-
 DEBUG = False
 DEBUG_MODE = 'PRINT'
 
@@ -21,6 +19,12 @@ READ_PACKET_LEN = 7
 
 CLAW_OPEN_POS = 300
 CLAW_CLOSE_POS = 120
+
+def G15AngleTo360(g15Angle):
+    return float(g15Angle) * 360.0 / 1088.0
+
+def Deg360ToG15Angle(deg360):
+    return int(deg360 * 1088.0 / 360.0)
 
 class ErrorIDs:
     INSTRUCTION_ERROR = 0x40
@@ -71,25 +75,25 @@ class SerialThread(threading.Thread):
     '''
     def __init__(self, orion5_reference, serialName, sendQueue, lock):
         threading.Thread.__init__(self)
-        self._outboxIterator = [['misc variables', [['cwAngleLimit',JointVars.CW_LIMIT],
-                                                    ['ccwAngleLimit',JointVars.CCW_LIMIT],
-                                                    ['cwMargin', JointVars.CW_MARGIN],
-                                                    ['cwwMargin', JointVars.CCW_MARGIN],
-                                                    ['cwSlope', JointVars.CW_SLOPE],
-                                                    ['cwwSlope', JointVars.CCW_SLOPE],
-                                                    ['punch', JointVars.PUNCH]]],
-                               ['control variables', [['enable',JointVars.TORQUE_ENABLE],
-                                                      ['goalPosition', JointVars.GOAL_POS],
-                                                      ['desiredSpeed', JointVars.SPEED],
-                                                      ['controlMode', JointVars.MODE]]]]
-        self._iter = [0,0,0]
+        self._outboxIterator = [['misc variables', [['cwAngleLimit', JointVars.CW_LIMIT, 2],
+                                                    ['ccwAngleLimit', JointVars.CCW_LIMIT, 2],
+                                                    ['cwMargin', JointVars.CW_MARGIN, 1],
+                                                    ['cwwMargin', JointVars.CCW_MARGIN, 1],
+                                                    ['cwSlope', JointVars.CW_SLOPE, 1],
+                                                    ['cwwSlope', JointVars.CCW_SLOPE, 1],
+                                                    ['punch', JointVars.PUNCH, 2]]],
+                               ['control variables', [['enable', JointVars.TORQUE_ENABLE, 1],
+                                                      ['goalPosition', JointVars.GOAL_POS, 2],
+                                                      ['desiredSpeed', JointVars.SPEED, 2],
+                                                      ['controlMode', JointVars.MODE, 1]]]]
+        self._iter = [0, 0, 0]
         self.arm = orion5_reference
         self.sendQueue = sendQueue
         self.lock = lock
         self.running = True
         self.uart = None
         self.lastReadTime = time.perf_counter()
-        self._checker = [0, 0, 0, 0]
+        self._checker = [2, 0, 0, 0]
         try:
             self.uart = serial.Serial(port=serialName,
                                       baudrate=SERIAL_BAUD_RATE,
@@ -145,6 +149,8 @@ class SerialThread(threading.Thread):
 
             self.RequestInfo()
 
+            time.sleep(0.03)
+
             for i in range(20):
                 self._iter[2] += 1
                 if len(self._outboxIterator[self._iter[1]][1]) <= self._iter[2]:
@@ -160,7 +166,10 @@ class SerialThread(threading.Thread):
                 itemPTR = self._outboxIterator[self._iter[1]][1][self._iter[2]]
                 if jointPTR.checkVariable(itemSETPTR[0], itemPTR[0]):
                     ID = jointPTR.getVariable('constants', 'ID')
-                    self.processSend((ID, itemPTR[1], jointPTR.getVariable(itemSETPTR[0], itemPTR[0]), self._checker[0]))
+                    value = jointPTR.getVariable(itemSETPTR[0], itemPTR[0])
+                    if itemPTR[0] == 'goalPosition':
+                        value = Deg360ToG15Angle(value)
+                    self.processSend((ID, itemPTR[1], itemPTR[2], value, self._checker[0]))
                     break
 
             while self.uart.in_waiting > 8:
@@ -174,19 +183,15 @@ class SerialThread(threading.Thread):
             self._checker[0] += 1
 
     def processSend(self, command):
-        #retValue = True
-        #BuildPacket(0x69, 4, [0, 3, (desiredPos & 0xFF), (desiredPos & 0xFF00) >> 8])
-        packet = self.BuildPacket(0, 4, [command[0], command[1], (command[2] & 0xFF), (command[2] & 0xFF00) >> 8]) #need to add checker in???  XXXX
-        #retValue = retValue and self.sendPacket(packet)
-        #packet = self.buildPacket(command)
+        data = [command[0], command[1], (command[3] & 0xFF)]
+        if command[2] == 2:
+            data.append((command[3] & 0xFF00) >> 8)
+        packet = self.BuildPacket(0, 2 + command[2], data) #need to add checker in???  XXXX
         retValue = self.sendPacket(packet)
-        time.sleep(.01)
         return retValue
 
     def RequestInfo(self):
-        self.sendPacket(self.BuildPacket(1, 2, [0, 0]))
-        self.sendPacket(self.BuildPacket(1, 2, [0, 1]))
-        self.sendPacket(self.BuildPacket(1, 2, [0, 2]))
+        self.sendPacket(self.BuildPacket(2, 0, []))
 
     def GetChecksum(self, packet):
         checksum = 0
@@ -256,23 +261,36 @@ class SerialThread(threading.Thread):
                 data = []
 
         if valid:
-            value = 0
-            if len(data) == 3:
-                value = struct.unpack('B', data[2])[0]
-            elif len(data) == 4:
-                value = struct.unpack('<H', bytes(data[2:4]))[0]
+            if packetType1 == 0x36:
+                # 0x36 is one register from G15
+                value = 0
+                if len(data) == 3:
+                    value = struct.unpack('B', data[2])[0]
+                elif len(data) == 4:
+                    value = struct.unpack('<H', bytes(data[2:4]))[0]
 
-            self.arm.joints[data[0]].setVariable('misc variables', 'error', 0)
-            if data[1] == 0:
-                self.arm.joints[data[0]].setVariable('feedback variables', 'currentPosition', value)
-            elif data[1] == 1:
-                self.arm.joints[data[0]].setVariable('feedback variables', 'currentVelocity', value)
-            elif data[1] == 2:
-                self.arm.joints[data[0]].setVariable('feedback variables', 'currentLoad', value)
+                self.arm.joints[data[0]].setVariable('misc variables', 'error', 0)
+                if data[1] == 0:
+                    self.arm.joints[data[0]].setVariable('feedback variables', 'currentPosition', G15AngleTo360(value))
+                elif data[1] == 1:
+                    self.arm.joints[data[0]].setVariable('feedback variables', 'currentVelocity', value)
+                elif data[1] == 2:
+                    self.arm.joints[data[0]].setVariable('feedback variables', 'currentLoad', value)
+            elif packetType1 == 0x22:
+                # 0x22 is all feedback vars from all G15s
+                unpacked = struct.unpack('HHHHHHHHHHHHHHH', bytes(data))
+                for i in range(len(self.arm.joints)):
+                    self.arm.joints[i].setVariable('feedback variables', 'currentPosition', G15AngleTo360(unpacked[i*3+0]))
+                    self.arm.joints[i].setVariable('feedback variables', 'currentVelocity', unpacked[i*3+1])
+                    self.arm.joints[i].setVariable('feedback variables', 'currentLoad', unpacked[i*3+2])
+
 
     def BuildPacket(self, type, length, data):
         # <0xF0> <0xF0> <packetType1> <packetType2> <data 1> ... <data n> <checksum>
-        hexReg = [0x69, 0x36]
+        # 0x69 - set variable in registry
+        # 0x36 - request a var from registry
+        # 0x22 - request all feedback vars from all G15s
+        hexReg = [0x69, 0x36, 0x22]
         packet = [0xF0, 0xF0, hexReg[type], length]
         for i in range(len(data)):
             packet.append(data[i])
@@ -291,13 +309,6 @@ class SerialThread(threading.Thread):
         except serial.SerialTimeoutException:
             debug("SerialThread: sendPacket: timeout writing to serial port")
             return False
-
-    def updateJoints(self, data):
-        # TODO: make functions for conversion e.g. G15 pos to angle
-        self.arm.joints[data['jointID']].setVariable('misc variables', 'error', data['errorID'])
-        self.arm.joints[data['jointID']].setVariable('feedback variables', 'currentVelocity', data['speed'])
-        self.arm.joints[data['jointID']].setVariable('feedback variables', 'currentLoad', data['load'])
-        self.arm.joints[data['jointID']].setVariable('feedback variables', 'currentPosition', data['pos'])
 
 class Joint(object):
     def __init__(self, name, ID, cwAngleLimit, ccwAngleLimit, margin, slope, punch, speed, mode):
@@ -374,7 +385,7 @@ class Joint(object):
         self.setVariable('control variables', 'desiredSpeed', int(1023.0 * RPM / 112.83))
 
     def setGoalPosition(self, goalPosition):
-        self.setVariable('control variables', 'goalPosition', int(goalPosition))
+        self.setVariable('control variables', 'goalPosition', goalPosition)
 
     def setTorqueEnable(self, enable):
         self.setVariable('control variables', 'enable', int(enable))
