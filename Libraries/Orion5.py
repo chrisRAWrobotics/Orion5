@@ -11,7 +11,7 @@ import struct
 DEBUG = False
 DEBUG_MODE = 'PRINT'
 
-SERIAL_BAUD_RATE = 250000
+SERIAL_BAUD_RATE = 500000
 SERIAL_TIMEOUT = 1  # seconds
 QUEUE_SLEEP_TIME = 0.01  # seconds
 READ_INTERVAL = 0.1  # seconds
@@ -139,7 +139,9 @@ class SerialThread(threading.Thread):
     def main(self):
         #self.processSend((1, JointVars.CHECKER, self._checker[0], self._checker[0]))
         while self.running:
-            time.sleep(.2)
+            # time.sleep(.2)
+
+            self.RequestInfo()
 
             for i in range(20):
                 self._iter[2] += 1
@@ -158,8 +160,9 @@ class SerialThread(threading.Thread):
                     ID = jointPTR.getVariable('constants', 'ID')
                     self.processSend((ID, itemPTR[1], jointPTR.getVariable(itemSETPTR[0], itemPTR[0]), self._checker[0]))
                     break
-            self.processRead()
-        self.SendUpdate()
+
+            while self.uart.in_waiting > 8:
+                self.processRead()
 
     def CheckerAdvance(self):
         # Advance the Checker
@@ -191,14 +194,16 @@ class SerialThread(threading.Thread):
                 checksum -= 256
         return (~checksum) & 0xFF
 
-    def ProcessRead(self):
+    def processRead(self):
         valid = 0
         state = 0
         reset = 0
         byte = 0
         packetType1 = 0
         packetType2 = 0
+        checker = 0
         data = []
+
         while True:
             if self.uart.in_waiting == 0:
                 break
@@ -230,8 +235,11 @@ class SerialThread(threading.Thread):
                 else:
                     data.append(byte)
             if state == 5:
+                checker = byte
+                state += 1
+            elif state == 6:
                 # get checksum
-                valid = (self.GetChecksum([0xFF, 0xFF, packetType1, packetType2] + data) == byte)
+                valid = (self.GetChecksum([0xFF, 0xFF, packetType1, packetType2, checker] + data) == byte)
                 if not valid:
                     reset = 1
 
@@ -364,10 +372,9 @@ class Joint(object):
         self.setVariable('control variables', 'desiredSpeed', int(1023.0 * RPM / 112.83))
 
     def setGoalPosition(self, goalPosition):
-        assert 0 <= goalPosition <= 360, "goalPosition outside valid range: 0-360"
         self.setVariable('control variables', 'goalPosition', int(goalPosition))
 
-    def setTorqueEnable(self, enable): #Clean
+    def setTorqueEnable(self, enable):
         self.setVariable('control variables', 'enable', int(enable))
 
     def getPosition(self):
@@ -393,11 +400,11 @@ class Orion5(object):
         self.serial = SerialThread(self, serialName, self.sendQueue, self.serialLock)
         self.serial.start()
 
-        self.base = Joint('base', 1, 0, 359, 1, 100, 0, 20, ControlModes.TIME)
-        self.shoulder = Joint('shoulder', 2, 0, 359, 1, 100, 0, 20, ControlModes.TIME)
-        self.elbow = Joint('elbow', 3, 0, 359, 1, 100, 0, 20, ControlModes.TIME)
-        self.wrist = Joint('wrist', 4, 0, 359, 1, 100, 0, 20, ControlModes.TIME)
-        self.claw = Claw('claw', 5, 0, 359, 1, 100, 0, 20, ControlModes.TIME)
+        self.base = Joint('base', 0, 0, 1087, 1, 100, 0, 20, 0)
+        self.shoulder = Joint('shoulder', 1, 0, 359, 1, 100, 0, 20, 0)
+        self.elbow = Joint('elbow', 2, 0, 359, 1, 100, 0, 20, 0)
+        self.wrist = Joint('wrist', 3, 0, 359, 1, 100, 0, 20, 0)
+        self.claw = Claw('claw', 4, 0, 359, 1, 100, 0, 20, 0)
 
         self.joints = [self.base, self.shoulder, self.elbow, self.wrist, self.claw]
 
