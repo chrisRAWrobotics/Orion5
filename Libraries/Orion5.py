@@ -6,7 +6,7 @@ import datetime as dt
 import copy
 import struct
 
-# cool and also nice
+# cool and also nice, not
 
 DEBUG = False
 DEBUG_MODE = 'PRINT'
