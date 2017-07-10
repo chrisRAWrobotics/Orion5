@@ -149,7 +149,7 @@ class SerialThread(threading.Thread):
 
             self.RequestInfo()
 
-            time.sleep(0.03)
+            time.sleep(0.05)
 
             for i in range(20):
                 self._iter[2] += 1
@@ -170,6 +170,7 @@ class SerialThread(threading.Thread):
                     if itemPTR[0] == 'goalPosition':
                         value = Deg360ToG15Angle(value)
                     self.processSend((ID, itemPTR[1], itemPTR[2], value, self._checker[0]))
+                    jointPTR.TickVariable(itemSETPTR[0], itemPTR[0])
                     break
 
             while self.uart.in_waiting > 8:

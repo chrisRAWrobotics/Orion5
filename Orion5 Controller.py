@@ -100,7 +100,7 @@ armConstants = {'X lims':[500.0,1.0,-250.0, False],
                            [key.MOTION_DELETE,'Attack Depth', False]]}
 
 Models = []
-serialPortName = 'COM3'
+serialPortName = 'COM8'
 STLSUBFOLDER =  './STLs'
 FILEEXTENSION = 'stl'
 fileSets = PullFileNames(FILEEXTENSION, STLSUBFOLDER)
@@ -228,7 +228,7 @@ class Window(pyglet.window.Window):
         glClearColor(0, 0, 0, 1)
         glEnable(GL_DEPTH_TEST)
         arm = Orion5.Orion5(serialPortName)
-        arm.setTimeToGoal(1)
+        #arm.setTimeToGoal(1)
         self.on_text_motion(False)
         self._ModelsLen = len(Models)
         for iterator1 in self._Controls[0]:
