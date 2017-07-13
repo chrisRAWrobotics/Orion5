@@ -3,11 +3,8 @@ import time
 
 orion = Orion5.Orion5('COM8')
 
-time.sleep(5)
-
 for joint in orion.joints:
-    joint.setVariable('control variables', 'enable', 1)
-    joint.setVariable('control variables', 'desiredSpeed', 100)
+    joint.setVariable('control variables', 'enable', 0)
 
 #i = 0
 #desiredPos = [90, 120, 150, 180, 210, 240, 270]
@@ -21,9 +18,12 @@ while True:
     #     if i >= len(desiredPos):
     #         i = 0
     #     lastTime = time.time()
-    #
-    time.sleep(0.1)
+
+    time.sleep(0.2)
+    print(orion.getJointAngles())
     #desiredPos = int(input('move to: '))
-    #orion.wrist.setGoalPosition(desiredPos)
+    #orion.shoulder.setGoalPosition(desiredPos)
 
 orion.exit()
+
+# shoulder ratio 2.857... = 1 + (52 / 28)

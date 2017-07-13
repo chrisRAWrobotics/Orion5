@@ -439,7 +439,7 @@ class Window(pyglet.window.Window):
             for item in temp:
                 if item > maxSpeed:
                     maxSpeed = 0.0 + item
-            arm.setTimeToGoal(maxSpeed)
+            #arm.setTimeToGoal(maxSpeed)
             arm.base.setGoalPosition(wrap360(-self._armVARS['Turret']))
             arm.shoulder.setGoalPosition(wrap360(self._armVARS['Shoulder']))
             arm.elbow.setGoalPosition(wrap360(self._armVARS['Elbow']))
@@ -610,4 +610,5 @@ def Main():
 
 if __name__ == '__main__':
     Main()
+
 arm.exit()

@@ -149,8 +149,6 @@ class SerialThread(threading.Thread):
 
             self.RequestInfo()
 
-            time.sleep(0.05)
-
             for i in range(20):
                 self._iter[2] += 1
                 if len(self._outboxIterator[self._iter[1]][1]) <= self._iter[2]:
@@ -175,6 +173,8 @@ class SerialThread(threading.Thread):
 
             while self.uart.in_waiting > 8:
                 self.processRead()
+
+            time.sleep(0.05)
 
     def CheckerAdvance(self):
         # Advance the Checker
@@ -281,7 +281,10 @@ class SerialThread(threading.Thread):
                 # 0x22 is all feedback vars from all G15s
                 unpacked = struct.unpack('HHHHHHHHHHHHHHH', bytes(data))
                 for i in range(len(self.arm.joints)):
-                    self.arm.joints[i].setVariable('feedback variables', 'currentPosition', G15AngleTo360(unpacked[i*3+0]))
+                    position = G15AngleTo360(unpacked[i*3+0])
+                    if i == 1:
+                        position /= 2.857
+                    self.arm.joints[i].setVariable('feedback variables', 'currentPosition', position)
                     self.arm.joints[i].setVariable('feedback variables', 'currentVelocity', unpacked[i*3+1])
                     self.arm.joints[i].setVariable('feedback variables', 'currentLoad', unpacked[i*3+2])
 
@@ -313,8 +316,6 @@ class SerialThread(threading.Thread):
 
 class Joint(object):
     def __init__(self, name, ID, cwAngleLimit, ccwAngleLimit, margin, slope, punch, speed, mode):
-        # TODO: make all vars private and create getters/setters
-        # constants
         self._jointLock = threading.Lock()
         self._datam = {'constants':{'ID':[ID, 1],
                                     'name':[name, 1]},
@@ -333,16 +334,6 @@ class Joint(object):
                        'feedback variables':{'currentPosition':[None, 0],
                                              'currentVelocity':[None, 0],
                                              'currentLoad':[None, 0]}}
-
-    def init(self):
-        self.setTorqueEnable(0)
-        print(self.getVariable('control variables', 'controlMode'), ControlModes.TIME)
-        self.setControlMode(self.getVariable('control variables', 'controlMode'))
-        print(self.getVariable('control variables', 'controlMode'), ControlModes.TIME)
-        if self.getVariable('control variables', 'controlMode') == ControlModes.TIME:
-            self.setTimeToGoal(self.getVariable('control variables', 'desiredSpeed'))
-        else:
-            self.setSpeed(self.getVariable('control variables', 'desiredSpeed'))
 
     def setVariable(self, id1, id2, datum):
         self._jointLock.acquire()
@@ -397,16 +388,6 @@ class Joint(object):
             retValue = 0.0
         return retValue
 
-class Claw(Joint):
-    def __init__(self, name, ID, cwAngleLimit, ccwAngleLimit, margin, slope, punch, speed, mode):
-        super().__init__(name, ID, cwAngleLimit, ccwAngleLimit, margin, slope, punch, speed, mode)
-
-    def open(self):
-        self.setGoalPosition(CLAW_OPEN_POS)
-
-    def close(self):
-        self.setGoalPosition(CLAW_CLOSE_POS)
-
 class Orion5(object):
     def __init__(self, serialName):
         self.serialLock = threading.Lock()
@@ -414,16 +395,14 @@ class Orion5(object):
         self.serial = SerialThread(self, serialName, self.sendQueue, self.serialLock)
         self.serial.start()
 
-        self.base = Joint('base', 0, 0, 1087, 1, 100, 0, 20, 0)
-        self.shoulder = Joint('shoulder', 1, 0, 359, 1, 100, 0, 20, 0)
-        self.elbow = Joint('elbow', 2, 0, 359, 1, 100, 0, 20, 0)
-        self.wrist = Joint('wrist', 3, 0, 359, 1, 100, 0, 20, 0)
-        self.claw = Claw('claw', 4, 0, 359, 1, 100, 0, 20, 0)
+        # name, ID, cwAngleLimit, ccwAngleLimit, margin, slope, punch, speed, mode
+        self.base =     Joint('base',     0,   0, 1087, 1, 120,  35, 100, 0)
+        self.shoulder = Joint('shoulder', 1,   0, 1087, 1, 120,  35, 100, 0)
+        self.elbow =    Joint('elbow',    2,  60, 1027, 1, 120,  35, 100, 0)
+        self.wrist =    Joint('wrist',    3, 550,  540, 1, 120,  35, 100, 0)
+        self.claw =     Joint('claw',     4,   0, 1087, 1, 120,  35, 100, 0)
 
         self.joints = [self.base, self.shoulder, self.elbow, self.wrist, self.claw]
-
-        for joint in self.joints:
-            joint.init()
 
     def setJointAngles(self, base, shoulder, elbow, wrist):
         self.base.setGoalPosition(base)
