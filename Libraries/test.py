@@ -1,28 +1,44 @@
 import Orion5
 import time
 
-orion = Orion5.Orion5('COM8')
+orion = Orion5.Orion5('COM3')
+
+time.sleep(5)
 
 for joint in orion.joints:
-    joint.setVariable('control variables', 'enable', 0)
+    joint.setVariable('control variables', 'enable', 1)
 
-#i = 0
-#desiredPos = [90, 120, 150, 180, 210, 240, 270]
-#lastTime = 0
+# orion.base.setVariable('control variables', 'desiredSpeed', 0)
+# orion.base.setVariable('control variables', 'controlMode', 2)
+#
+# time.sleep(2)
+#
+# speed = 0
+# while True:
+#     speed += 1
+#     if speed > 250:
+#         break
+#     time.sleep(0.01)
+#     orion.base.setVariable('control variables', 'desiredSpeed', int(speed))
+#
+# input('stop?')
+#
+# while True:
+#     speed -= 10
+#     if speed <= 0:
+#         break
+#     time.sleep(0.05)
+#     orion.base.setVariable('control variables', 'desiredSpeed', int(speed))
+#
+# time.sleep(1)
+# orion.base.setVariable('control variables', 'controlMode', 0)
+
+orion.elbow.setGoalPosition(60)
+print(orion.shoulder.getPosition())
 
 while True:
-    # if time.time() - lastTime > 2:
-    #     orion.wrist.setGoalPosition(desiredPos[i])
-    #     print('move to', desiredPos[i])
-    #     i += 1
-    #     if i >= len(desiredPos):
-    #         i = 0
-    #     lastTime = time.time()
-
-    time.sleep(0.2)
-    print(orion.getJointAngles())
-    #desiredPos = int(input('move to: '))
-    #orion.shoulder.setGoalPosition(desiredPos)
+    desiredPos = int(input('move to: '))
+    orion.shoulder.setGoalPosition(desiredPos)
 
 orion.exit()
 
