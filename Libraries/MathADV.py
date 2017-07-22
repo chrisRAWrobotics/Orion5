@@ -20,6 +20,13 @@ def wrap360(angle):
         angle -= 360
     return int(angle)
 
+def wrap360f(angle):
+    if angle < 0:
+        angle += 360
+    elif angle > 360:
+        angle -= 360
+    return angle
+
 def pol2rect(r, t, boolean):
     if boolean:
         return r * math.cos(t * math.pi / 180.0) #x True

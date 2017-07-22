@@ -8,7 +8,7 @@ from MathADV import *
 from pyglet.gl import *
 from pyglet.window import key
 import Orion5
-import copy
+import copy, math
 
 print('KEYBOARD CONTROLS:',
       '\n   Right - Extends tool point',
@@ -106,7 +106,7 @@ FILEEXTENSION = 'stl'
 fileSets = PullFileNames(FILEEXTENSION, STLSUBFOLDER)
 Offsets = [[0.0,0.0,0.0],
            [0.0,0.0,0.0],
-           [-30.309,0.0,45.0],
+           [-30.309,0.0,53.0],
            [-170.384,0.0,0.0],
            [-136.307,0.0,0.0],
            [-136.307,0.0,0.0],
@@ -139,19 +139,110 @@ class Window(pyglet.window.Window):
     zOffset = -300
     controlState = [-1, -1, -1, False, False, False, False]
     _MousePos = [0,0]
-    _armVARS = {'X':400.0,
-                'Z':50.0,
-                'Attack Angle':0.0,
-                'Attack Depth':50.0,
-                'Wrist Pos':[0.0,0.0,0.0],
-                'Elbow Pos':[0.0,0.0,0.0],
-                'Shoulder Pos':[-30.309,0.0,45.0],
-                'Elbow Angle':0.0,
+    _armVARS = {'X': 400.0,
+                'Z': 50.0,
+                'Attack Angle': 0.0,
+                'Attack Depth': 50.0,
+                'Wrist Pos': [0.0, 0.0, 0.0],
+                'Elbow Pos': [0.0, 0.0, 0.0],
+                'Shoulder Pos': [-30.309, 0.0, 53.0],
+                'Elbow Angle': 0.0,
                 'Turret': 180.0,
                 'Shoulder': 0.0,
                 'Elbow': 0.0,
                 'Wrist': 0.0,
-                'Claw': 200.0}
+                'Claw': 200.0,
+                'OLD': {'X': 400.0,
+                        'Z': 50.0,
+                        'Attack Angle': 0.0,
+                        'Attack Depth': 50.0,
+                        'Wrist Pos': [0.0, 0.0, 0.0],
+                        'Elbow Pos': [0.0, 0.0, 0.0],
+                        'Shoulder Pos': [-30.309, 0.0, 53.0],
+                        'Elbow Angle': 0.0,
+                        'Turret': 180.0,
+                        'Shoulder': 0.0,
+                        'Elbow': 0.0,
+                        'Wrist': 0.0,
+                        'Claw': 200.0, },
+                'Iter': ['X',
+                         'Z',
+                         'Attack Angle',
+                         'Attack Depth',
+                         'Wrist Pos',
+                         'Elbow Pos',
+                         'Shoulder Pos',
+                         'Elbow Angle',
+                         'Turret',
+                         'Shoulder',
+                         'Elbow',
+                         'Wrist',
+                         'Claw']}
+    _interferenceFields = [[[['Wrist', 29],
+                            {'x': 0, 'y': 27.834},
+                            {'x': -61, 'y': 27.834},
+                            {'x': -126, 'y': 13.6},
+                            {'x': -126, 'y': -13.6},
+                            {'x': -61, 'y': -27.834},
+                            {'x': 0, 'y': -27.834}],
+                           [['Forearm', 18],
+                            {'x': 0, 'y': 16.652},
+                            {'x': -98.347, 'y': 28.238},
+                            {'x': -136.46, 'y': 28.238},
+                            {'x': -158.307, 'y': 20.173},
+                            {'x': -158.307, 'y': -20.173},
+                            {'x': -136.46, 'y': -28.238},
+                            {'x': -98.347, 'y': -28.238},
+                            {'x': 0, 'y': -16.652}],
+                           [['Bicep', 18],
+                            {'x': 0, 'y': 16},
+                            {'x': -126.2, 'y': 27.686},
+                            {'x': -171.415, 'y': 27.686},
+                            {'x': -192.384, 'y': 20.243},
+                            {'x': -192.384, 'y': -20.243},
+                            {'x': -171.415, 'y': -27.686},
+                            {'x': -126.2, 'y': -27.686},
+                            {'x': 0, 'y': -16}],
+                           [['Turret',66/2],
+                            {'x': -9.55-30.309, 'y': 29.5+53},
+                            {'x': -31.1-30.309, 'y': 7.95+53},
+                            {'x': -31.1-30.309, 'y': -10.047+53},
+                            {'x': -22.807-30.309, 'y': -53+53},
+                            {'x': 83.426-30.309, 'y': -53+53},
+                            {'x': 80.509-30.309, 'y': 24.55+53},
+                            {'x': 75.917-30.309, 'y': 29.5+53}
+                            ]],
+                           [[{'x': 0, 'y': 27.834},
+                             {'x': -61, 'y': 27.834},
+                             {'x': -126, 'y': 13.6},
+                             {'x': -126, 'y': -13.6},
+                             {'x': -61, 'y': -27.834},
+                             {'x': 0, 'y': -27.834}],
+                            [{'x': 0, 'y': 16.652},
+                             {'x': -98.347, 'y': 28.238},
+                             {'x': -136.46, 'y': 28.238},
+                             {'x': -158.307, 'y': 20.173},
+                             {'x': -158.307, 'y': -20.173},
+                             {'x': -136.46, 'y': -28.238},
+                             {'x': -98.347, 'y': -28.238},
+                             {'x': 0, 'y': -16.652}],
+                            [{'x': 0, 'y': 16},
+                             {'x': -126.2, 'y': 27.686},
+                             {'x': -171.415, 'y': 27.686},
+                             {'x': -192.384, 'y': 20.243},
+                             {'x': -192.384, 'y': -20.243},
+                             {'x': -171.415, 'y': -27.686},
+                             {'x': -126.2, 'y': -27.686},
+                             {'x': 0, 'y': -16}],
+                            [{'x': -9.55 - 30.309, 'y': 29.5 + 53},
+                             {'x': -31.1 - 30.309, 'y': 7.95 + 53},
+                             {'x': -31.1 - 30.309, 'y': -10.047 + 53},
+                             {'x': -22.807 - 30.309, 'y': -53 + 53},
+                             {'x': 83.426 - 30.309, 'y': -53 + 53},
+                             {'x': 80.509 - 30.309, 'y': 24.55 + 53},
+                             {'x': 75.917 - 30.309, 'y': 29.5 + 53}
+                             ]]
+                           ]
     arm = None
     _ModelIDs = []
     _ColourBank = []
@@ -225,8 +316,17 @@ class Window(pyglet.window.Window):
     def __init__(self, width, height, title=''):
         global arm
         super(Window, self).__init__(width, height, title)
+        for item1 in self._interferenceFields[0]:
+            print('new')
+            for item2 in item1[1:]:
+                item2['theta'] = rect2pol(item2['x'], item2['y'], False)
+                item2['r'] = rect2pol(item2['x'], item2['y'], True)
+                print(item2['r'], item2['theta'], item2['x'], item2['y'],
+                      pol2rect(item2['r'], item2['theta'], True), pol2rect(item2['r'], item2['theta'], False))
+
         glClearColor(0, 0, 0, 1)
         glEnable(GL_DEPTH_TEST)
+        #gluPerspective(45, 1, 1, 2)
         arm = Orion5.Orion5(serialPortName)
         #arm.setTimeToGoal(1)
         self.on_text_motion(False)
@@ -255,7 +355,10 @@ class Window(pyglet.window.Window):
                                           ('n3f/static', normals))
         for iterator1 in range(self._ModelsLen):
             self._ModelIDs.append(Models[iterator1][0][2])
-            self._ColourBank.append(vec(Models[iterator1][0][3][0], Models[iterator1][0][3][1], Models[iterator1][0][3][2], Models[iterator1][0][3][3]))
+            #self._ColourBank.append(vec(Models[iterator1][0][3][0], Models[iterator1][0][3][1], Models[iterator1][0][3][2], Models[iterator1][0][3][3]))
+            self._ColourBank.append(
+                [Models[iterator1][0][3][0], Models[iterator1][0][3][1], Models[iterator1][0][3][2],
+                    Models[iterator1][0][3][3]])
             self._Objects.append(pyglet.graphics.Batch())
             vertices = []
             normals = []
@@ -274,7 +377,7 @@ class Window(pyglet.window.Window):
                                                  ('v3f/static', vertices),
                                                  ('n3f/static', normals))
         pyglet.clock.schedule_interval(self.update, 1 / 30.0)
-        print(self._ControlVars)
+        #print(self._ControlVars)
 
     def on_resize(self, width, height):
         # set the Viewport
@@ -283,7 +386,7 @@ class Window(pyglet.window.Window):
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
         aspectRatio = width / height
-        gluPerspective(35, aspectRatio, 1, 1000)
+        gluPerspective(35, aspectRatio, 1, 10000)
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
         glTranslatef(0, 0, -500)
@@ -303,8 +406,9 @@ class Window(pyglet.window.Window):
             if ((abs((x - WINDOW[0] / 2) * CONTROLSCALER - self._Controls[2][iterator1][0]) < (ZONEWIDTH / 2)*CONTROLSCALER)
                 and (abs((y - WINDOW[1] / 2) * CONTROLSCALER - self._Controls[2][iterator1][1]) < (ZONEWIDTH / 2)*CONTROLSCALER)):
                 self.controlState[1] = iterator1 + 1
+                '''
                 if self.controlState[1] != 0:
-                    print(self.controlState[1])
+                    print(self.controlState[1])'''
         self._MousePos[0] = x
         self._MousePos[1] = y
 
@@ -328,19 +432,19 @@ class Window(pyglet.window.Window):
             if len(self._sequence) != 0:
                 #Show entry toggle
                 self.controlState[5] = not self.controlState[5]
-                print(self._sequenceIterator, self._sequence[self._sequenceIterator])
+                #print(self._sequenceIterator, self._sequence[self._sequenceIterator])
         elif symbol == key.W:
             if len(self._sequence) != 0:
                 self._sequenceIterator -= 1
             if self._sequenceIterator < -1:
                 self._sequenceIterator = len(self._sequence)-2
-            print(self._sequenceIterator, self._sequence[self._sequenceIterator])
+            #print(self._sequenceIterator, self._sequence[self._sequenceIterator])
         elif symbol == key.S:
             if len(self._sequence) != 0:
                 self._sequenceIterator += 1
             if self._sequenceIterator > len(self._sequence)-2:
                 self._sequenceIterator = -1
-            print(self._sequenceIterator, self._sequence[self._sequenceIterator])
+            #print(self._sequenceIterator, self._sequence[self._sequenceIterator])
         elif symbol == key.D:
             # record entry
             self._sequence.append([['Turret', copy.copy(self._armVARS['Turret'])],
@@ -354,7 +458,7 @@ class Window(pyglet.window.Window):
                 self.controlState[6] = not self.controlState[6]
                 if self.controlState[6]:
                     self.controlState[5] = True
-                print(self._sequenceIterator, self._sequence[self._sequenceIterator])
+                #print(self._sequenceIterator, self._sequence[self._sequenceIterator])
         elif symbol == key.X:
             try:
                 ID = ''
@@ -452,7 +556,6 @@ class Window(pyglet.window.Window):
         self.clear()
         glEnable(GL_LIGHTING)
         glEnable(GL_LIGHT0)
-
         for iterator in range(len(self._Controls[0])):
             glLoadIdentity()
             scaler = (self._armVARS[self._ControlVars[self._Controls[0][iterator]][6]]
@@ -474,15 +577,11 @@ class Window(pyglet.window.Window):
             glTranslatef(self._Controls[2][iterator][0],
                          self._Controls[2][iterator][1],
                          CONTROLZPOSITION)
-            '''glTranslatef(self._ControlVars[self._Controls[0][iterator]][0] * CONTROLSCALER,
-                         self._ControlVars[self._Controls[0][iterator]][1] * CONTROLSCALER,
-                         CONTROLZPOSITION)
-            
-            glTranslatef(self._ControlVars[self._Controls[0][iterator]][2] * CONTROLSCALER * scaler,
-                         self._ControlVars[self._Controls[0][iterator]][3] * CONTROLSCALER * scaler,
-                         0)'''
-            glMaterialfv(GL_FRONT, GL_AMBIENT, self._ColourBank[1])
+            glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE)
+            glEnable(GL_COLOR_MATERIAL)
+            glColor3f(.6,.6,.6)
             self._Controls[1][iterator].draw()
+            glDisable(GL_COLOR_MATERIAL)
 
         for iterator1 in range(self._ModelsLen):
             glLoadIdentity()
@@ -516,8 +615,93 @@ class Window(pyglet.window.Window):
                 glRotatef(self._armVARS['Elbow Angle'], 0, 1, 0)
 
             #Draw the Thing
-            glMaterialfv(GL_FRONT, GL_AMBIENT, self._ColourBank[iterator1])
+            glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE)
+            glEnable(GL_COLOR_MATERIAL)
+            glColor3f(self._ColourBank[iterator1][0],
+                      self._ColourBank[iterator1][1],
+                      self._ColourBank[iterator1][2])
+            #glMaterialfv(GL_FRONT, GL_AMBIENT, self._ColourBank[iterator1])
             self._Objects[iterator1].draw()
+            glDisable(GL_COLOR_MATERIAL)
+
+    def CheckPoly(self, poly1, poly2):
+        retValue = False
+        #does something from poly2 exist in poly1
+        for item in poly2:
+            insidePoly = True
+            for iterator in range(len(poly1)):
+                pointO = {'x': poly1[iterator]['x'],
+                          'y': poly1[iterator]['y']}
+                pointA = {'x': poly1[iterator - 1]['x'] - pointO['x'],
+                          'y': poly1[iterator - 1]['y'] - pointO['y']}
+                pointB = {'x': item['x'] - pointO['x'],
+                          'y': item['y'] - pointO['y']}
+                insidePoly = insidePoly and ((pointA['x'] * pointB['y'] - pointA['y'] * pointB['x']) < 0)
+            #print('poly1',insidePoly, item, poly1)
+            retValue = retValue or insidePoly
+        # does something from poly1 exist in poly2
+        for item in poly1:
+            insidePoly = True
+            for iterator in range(len(poly2)):
+                pointO = {'x': poly2[iterator]['x'],
+                          'y': poly2[iterator]['y']}
+                pointA = {'x': poly2[iterator - 1]['x'] - pointO['x'],
+                          'y': poly2[iterator - 1]['y'] - pointO['y']}
+                pointB = {'x': item['x'] - pointO['x'],
+                          'y': item['y'] - pointO['y']}
+                insidePoly = insidePoly and ((pointA['x'] * pointB['y'] - pointA['y'] * pointB['x']) < 0)
+            #print('poly2',insidePoly, item, poly2)
+            retValue = retValue or insidePoly
+        #print('\nresult', retValue)
+        return retValue
+
+    def Collision_Check(self):
+        #check against limits
+        minMax = [{'id': 'Wrist', 'min': 45, 'max': 315},
+                  {'id': 'Elbow', 'min': 15, 'max': 345},
+                  {'id': 'Shoulder', 'min': 0, 'max': 120}]
+        for iterator1 in range(3):
+            if not (self._armVARS[minMax[iterator1]['id']] > minMax[iterator1]['min']
+                    and self._armVARS[minMax[iterator1]['id']] < minMax[iterator1]['max']):
+                #print(minMax[iterator1]['id'], self._armVARS[minMax[iterator1]['id']])
+                return True
+
+        # check polygon hits
+        iterBank = [['Attack Angle','Elbow Angle', 'Shoulder'],['Wrist Pos', 'Elbow Pos', 'Shoulder Pos'], [-1,-1,-1]]
+        for iterator1 in range(3):
+            #print('Thing', iterator1)
+            for iterator2 in range(len(self._interferenceFields[1][iterator1])):
+                # Rotate the polygons
+                self._interferenceFields[1][iterator1][iterator2]['x'] = pol2rect(self._interferenceFields[0][iterator1][iterator2 + 1]['r'],
+                                                                                  wrap360f(self._interferenceFields[0][iterator1][iterator2 + 1]['theta']
+                                                                                           + (self._armVARS[iterBank[0][iterator1]] * iterBank[2][iterator1])),
+                                                                                  True)
+                self._interferenceFields[1][iterator1][iterator2]['y'] = pol2rect(self._interferenceFields[0][iterator1][iterator2 + 1]['r'],
+                                                                                  wrap360f(self._interferenceFields[0][iterator1][iterator2 + 1]['theta']
+                                                                                           + (self._armVARS[iterBank[0][iterator1]] * iterBank[2][iterator1])),
+                                                                                  False)
+                '''print(int(self._interferenceFields[0][iterator1][iterator2+1]['x']),
+                      int(self._interferenceFields[1][iterator1][iterator2]['x']),
+                      int(self._interferenceFields[0][iterator1][iterator2+1]['y']),
+                      int(self._interferenceFields[1][iterator1][iterator2]['y']))'''
+                # translate the polygons
+                self._interferenceFields[1][iterator1][iterator2]['x'] += self._armVARS[iterBank[1][iterator1]][0]
+                self._interferenceFields[1][iterator1][iterator2]['y'] += self._armVARS[iterBank[1][iterator1]][2]
+        if (self.CheckPoly(self._interferenceFields[1][0],
+                           self._interferenceFields[1][2]) or
+                (self.CheckPoly(self._interferenceFields[1][0],
+                                self._interferenceFields[1][3]) or
+                     (self.CheckPoly(self._interferenceFields[1][1],
+                                self._interferenceFields[1][3])))):
+            '''print(self.CheckPoly(self._interferenceFields[1][0], self._interferenceFields[1][2]),
+                  self.CheckPoly(self._interferenceFields[1][0], self._interferenceFields[1][3]),
+                  self.CheckPoly(self._interferenceFields[1][1], self._interferenceFields[1][3]),
+                  '\n', self._armVARS['Attack Angle'], self._armVARS['Wrist Pos'], self._interferenceFields[1][0],
+                  '\n', self._armVARS['Elbow Angle'], self._armVARS['Elbow Pos'], self._interferenceFields[1][1],
+                  '\n', self._armVARS['Shoulder'], self._armVARS['Shoulder Pos'], self._interferenceFields[1][2],
+                  '\n', self._interferenceFields[1][3])'''
+            return True
+        return False
 
     def on_text_motion(self, motion, BLAH = False, Setting = None):
         global arm
@@ -526,6 +710,12 @@ class Window(pyglet.window.Window):
         TODO: build a temporary holder for the old value of the thing being changed, 
         along with a loop around this entire thing
         '''
+        for item in self._armVARS['Iter']:
+            if ((type(self._armVARS['OLD'][item]) == float) or (type(self._armVARS['OLD'][item]) == int)):
+                self._armVARS['OLD'][item] = 0.0 + self._armVARS[item]
+            elif (type(self._armVARS['OLD'][item]) == list):
+                for iterator in range(len(self._armVARS[item])):
+                    self._armVARS['OLD'][item][iterator] = 0.0 + self._armVARS[item][iterator]
         for item in armConstants['Key IDs']:
             if motion == item[0]:
                 if Setting == None:
@@ -545,32 +735,47 @@ class Window(pyglet.window.Window):
                         self._armVARS[item[1]] += armConstants[item[1] + ' lims'][0]
                     else:
                         self._armVARS[item[1]] = armConstants[item[1] + ' lims'][2]
+        try:
+            #if self._armVARS['Turret'] != None: #uneeded check since fixing the ORION5.py
+            # Find the Wrist Point
+            self._armVARS['Wrist Pos'][0] = -self._armVARS['X'] + pol2rect((85.25 + self._armVARS['Attack Depth']) , self._armVARS['Attack Angle'], True)
+            self._armVARS['Wrist Pos'][2] = self._armVARS['Z'] - pol2rect((85.25 + self._armVARS['Attack Depth']) , self._armVARS['Attack Angle'], False)
+            # Check 1 if wrist is too far from shoulder
 
-        #if self._armVARS['Turret'] != None: #uneeded check since fixing the ORION5.py
-        # Find the Wrist Point
-        self._armVARS['Wrist Pos'][0] = -self._armVARS['X'] + pol2rect((85.25 + self._armVARS['Attack Depth']) , self._armVARS['Attack Angle'], True)
-        self._armVARS['Wrist Pos'][2] = self._armVARS['Z'] - pol2rect((85.25 + self._armVARS['Attack Depth']) , self._armVARS['Attack Angle'], False)
-        # Check 1 if wrist is too far from shoulder
+            b = math.sqrt((abs(self._armVARS['Wrist Pos'][0] - self._armVARS['Shoulder Pos'][0]) ** 2.0) + (abs(self._armVARS['Wrist Pos'][2] - self._armVARS['Shoulder Pos'][2]) ** 2.0))
+            if b > (armConstants['Forearm Len'] + armConstants['Bicep Len']):
+                self._armVARS['Elbow Pos'][0] = self._armVARS['Shoulder Pos'][0] + (armConstants['Bicep Len'] * (self._armVARS['Wrist Pos'][0] - self._armVARS['Shoulder Pos'][0]) / b)
+                self._armVARS['Elbow Pos'][2] = self._armVARS['Shoulder Pos'][2] + (armConstants['Bicep Len'] * (self._armVARS['Wrist Pos'][2] - self._armVARS['Shoulder Pos'][2]) / b)
+                self._armVARS['Wrist Pos'][0] = self._armVARS['Shoulder Pos'][0] + ((armConstants['Forearm Len'] + armConstants['Bicep Len']) * (self._armVARS['Wrist Pos'][0] - self._armVARS['Shoulder Pos'][0]) / b)
+                self._armVARS['Wrist Pos'][2] = self._armVARS['Shoulder Pos'][2] + ((armConstants['Forearm Len'] + armConstants['Bicep Len']) * (self._armVARS['Wrist Pos'][2] - self._armVARS['Shoulder Pos'][2]) / b)
+                self._armVARS['X'] = -self._armVARS['Wrist Pos'][0] + pol2rect((85.25 + self._armVARS['Attack Depth']), self._armVARS['Attack Angle'], True)
+                self._armVARS['Z'] = self._armVARS['Wrist Pos'][2] + pol2rect((85.25 + self._armVARS['Attack Depth']), self._armVARS['Attack Angle'], False)
+                self._armVARS['Shoulder'] = 180.0 - rect2pol(self._armVARS['Wrist Pos'][0] - self._armVARS['Shoulder Pos'][0], self._armVARS['Wrist Pos'][2] - self._armVARS['Shoulder Pos'][2], False)
+                self._armVARS['Elbow Angle'] = 0.0 + self._armVARS['Shoulder']
+            else:
+                self._armVARS['Shoulder'] = 180.0 - rect2pol(self._armVARS['Wrist Pos'][0] - self._armVARS['Shoulder Pos'][0], self._armVARS['Wrist Pos'][2] - self._armVARS['Shoulder Pos'][2], False) + math.acos(((b ** 2.0) + (armConstants['Bicep Len'] ** 2.0) - (armConstants['Forearm Len'] ** 2.0)) / (2.0 * b * armConstants['Bicep Len'])) * 180.0 / math.pi
+                self._armVARS['Elbow Angle'] = self._armVARS['Shoulder'] - 180 + math.acos(((armConstants['Forearm Len'] ** 2) + (armConstants['Bicep Len'] ** 2) - (b ** 2)) / (2 * armConstants['Forearm Len'] * armConstants['Bicep Len'])) * 180.0 / math.pi
+                self._armVARS['Elbow Pos'][0] = self._armVARS['Shoulder Pos'][0] - pol2rect(armConstants['Bicep Len'] , -self._armVARS['Shoulder'], True)
+                self._armVARS['Elbow Pos'][2] = self._armVARS['Shoulder Pos'][2] - pol2rect(armConstants['Bicep Len'] , -self._armVARS['Shoulder'], False)
 
-        b = math.sqrt((abs(self._armVARS['Wrist Pos'][0] - self._armVARS['Shoulder Pos'][0]) ** 2.0) + (abs(self._armVARS['Wrist Pos'][2] - self._armVARS['Shoulder Pos'][2]) ** 2.0))
-        if b > (armConstants['Forearm Len'] + armConstants['Bicep Len']):
-            self._armVARS['Elbow Pos'][0] = self._armVARS['Shoulder Pos'][0] + (armConstants['Bicep Len'] * (self._armVARS['Wrist Pos'][0] - self._armVARS['Shoulder Pos'][0]) / b)
-            self._armVARS['Elbow Pos'][2] = self._armVARS['Shoulder Pos'][2] + (armConstants['Bicep Len'] * (self._armVARS['Wrist Pos'][2] - self._armVARS['Shoulder Pos'][2]) / b)
-            self._armVARS['Wrist Pos'][0] = self._armVARS['Shoulder Pos'][0] + ((armConstants['Forearm Len'] + armConstants['Bicep Len']) * (self._armVARS['Wrist Pos'][0] - self._armVARS['Shoulder Pos'][0]) / b)
-            self._armVARS['Wrist Pos'][2] = self._armVARS['Shoulder Pos'][2] + ((armConstants['Forearm Len'] + armConstants['Bicep Len']) * (self._armVARS['Wrist Pos'][2] - self._armVARS['Shoulder Pos'][2]) / b)
-            self._armVARS['X'] = -self._armVARS['Wrist Pos'][0] + pol2rect((85.25 + self._armVARS['Attack Depth']), self._armVARS['Attack Angle'], True)
-            self._armVARS['Z'] = self._armVARS['Wrist Pos'][2] + pol2rect((85.25 + self._armVARS['Attack Depth']), self._armVARS['Attack Angle'], False)
-            self._armVARS['Shoulder'] = 180.0 - rect2pol(self._armVARS['Wrist Pos'][0] - self._armVARS['Shoulder Pos'][0], self._armVARS['Wrist Pos'][2] - self._armVARS['Shoulder Pos'][2], False)
-            self._armVARS['Elbow Angle'] = 0.0 + self._armVARS['Shoulder']
-        else:
-            self._armVARS['Shoulder'] = 180.0 - rect2pol(self._armVARS['Wrist Pos'][0] - self._armVARS['Shoulder Pos'][0], self._armVARS['Wrist Pos'][2] - self._armVARS['Shoulder Pos'][2], False) + math.acos(((b ** 2.0) + (armConstants['Bicep Len'] ** 2.0) - (armConstants['Forearm Len'] ** 2.0)) / (2.0 * b * armConstants['Bicep Len'])) * 180.0 / math.pi
-            self._armVARS['Elbow Angle'] = self._armVARS['Shoulder'] - 180 + math.acos(((armConstants['Forearm Len'] ** 2) + (armConstants['Bicep Len'] ** 2) - (b ** 2)) / (2 * armConstants['Forearm Len'] * armConstants['Bicep Len'])) * 180.0 / math.pi
-            self._armVARS['Elbow Pos'][0] = self._armVARS['Shoulder Pos'][0] - pol2rect(armConstants['Bicep Len'] , -self._armVARS['Shoulder'], True)
-            self._armVARS['Elbow Pos'][2] = self._armVARS['Shoulder Pos'][2] - pol2rect(armConstants['Bicep Len'] , -self._armVARS['Shoulder'], False)
-
-        self._armVARS['Shoulder'] = 0.0 + self._armVARS['Shoulder']
-        self._armVARS['Elbow'] = self._armVARS['Elbow Angle'] - self._armVARS['Shoulder'] + 180.0
-        self._armVARS['Wrist'] = self._armVARS['Attack Angle'] - self._armVARS['Elbow Angle'] + 180.0
+            self._armVARS['Shoulder'] = wrap360f(0.0 + self._armVARS['Shoulder'])
+            self._armVARS['Elbow'] = wrap360f(self._armVARS['Elbow Angle'] - self._armVARS['Shoulder'] + 180.0)
+            self._armVARS['Wrist'] = wrap360f(self._armVARS['Attack Angle'] - self._armVARS['Elbow Angle'] + 180.0)
+        except:
+            for item in self._armVARS['Iter']:
+                if ((type(self._armVARS['OLD'][item]) == float) or (type(self._armVARS['OLD'][item]) == int)):
+                    self._armVARS[item] = 0.0 + self._armVARS['OLD'][item]
+                elif (type(self._armVARS['OLD'][item]) == list):
+                    for iterator in range(len(self._armVARS[item])):
+                        self._armVARS[item][iterator] = 0.0 + self._armVARS['OLD'][item][iterator]
+            return
+        if self.Collision_Check():
+            for item in self._armVARS['Iter']:
+                if ((type(self._armVARS['OLD'][item]) == float) or (type(self._armVARS['OLD'][item]) == int)):
+                    self._armVARS[item] = 0.0 + self._armVARS['OLD'][item]
+                elif (type(self._armVARS['OLD'][item]) == list):
+                    for iterator in range(len(self._armVARS[item])):
+                        self._armVARS[item][iterator] = 0.0 + self._armVARS['OLD'][item][iterator]
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         self._MousePos[0] = x
