@@ -8,18 +8,18 @@ time.sleep(5)
 for joint in orion.joints:
     joint.setVariable('control variables', 'enable', 1)
 
-orion.claw.setGoalPosition(250)
-while abs(orion.claw.getPosition() - 250) > 5:
-    time.sleep(0.1)
-
-orion.claw.setGoalPosition(20)
+# orion.claw.setGoalPosition(250)
+# while abs(orion.claw.getPosition() - 250) > 5:
+#     time.sleep(0.1)
+#
+# orion.claw.setGoalPosition(20)
 
 while True:
     print(orion.claw.getVariable('feedback variables', 'currentLoad'))
     time.sleep(0.1)
-    # id = int(input('id: '))
-    # desiredPos = int(input('angle: '))
-    # orion.joints[id].setGoalPosition(desiredPos)
+    id = int(input('id: '))
+    desiredPos = int(input('angle: '))
+    orion.joints[id].setGoalPosition(desiredPos)
 
 
 # orion.base.setVariable('control variables', 'desiredSpeed', 0)
