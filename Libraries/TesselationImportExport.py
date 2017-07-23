@@ -2,7 +2,7 @@ import struct, math
 
 def STLRead(Models, fileName, offset, rotation, ModelID, ColorID = 1):
     filePipe = open(fileName, 'rb')
-    colorcodes = [[1, 0, 100, 255], [100, 0, 0, 255], [255, 255, 255, 255], [10, 10, 10, 10]]
+    colorcodes = [[.16, .16, .16, 1.0], [.12, .12, .12, 1.0], [.5, 0, 0, 0.1], [.38, .37, .4, 1],[.35, .2, .53, 1]]
     headerLength = 80
     floatLength = 4
     endLength = 2
@@ -103,3 +103,4 @@ def PullFileNames(extension, subFolder):
     for iterator1 in range(len(fileNames)):
         fileSets[int(fileNames[iterator1][:3])].append(subFolder+'/'+fileNames[iterator1])
     return fileSets
+

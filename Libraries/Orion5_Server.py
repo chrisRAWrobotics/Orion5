@@ -2,7 +2,7 @@ import socket
 import select
 import Orion5
 
-orion = Orion5.Orion5('COM13')
+orion = Orion5.Orion5('COM4')
 
 HOST = 'localhost'
 PORT = 42000
@@ -44,17 +44,40 @@ while True:
             elif data == 'q':
                 break
             else:
-                data = data.split('+')
-                data_dict = {
-                    'jointIndex': int(data[0]),
-                    'id1': data[1],
-                    'id2': data[2]
-                }
+                try:
+                    data = data.split('+')
+                    data_dict = {
+                        'jointID': int(data[0]),
+                        'id1': data[1],
+                        'id2': data[2]
+                    }
+                except ValueError:
+                    continue
 
-                if len(data) == 4:
-                    orion.joints[data_dict['jointIndex']].setVariable(data_dict['id1'], data_dict['id2'], int(data[3]))
+                if data_dict['id1'] == 'posFeedback':
+                    conn.sendall(str(orion.getJointAngles()).encode())
+                elif data_dict['id1'] == 'velFeedback':
+                    conn.sendall(str(orion.getJointSpeeds()).encode())
+                elif data_dict['id1'] == 'torFeedback':
+                    conn.sendall(str(orion.getJointLoads()).encode())
+                elif data_dict['id1'] == 'posControl':
+                    orion.setJointAnglesArray(eval(data[3]))
+                elif data_dict['id1'] == 'velControl':
+                    orion.setJointSpeedsArray(eval(data[3]))
+                elif data_dict['id1'] == 'enControl':
+                    orion.setJointTorqueEnablesArray(eval(data[3]))
+                elif len(data) == 4:
+                    try:
+                        if '.' in data[3]:
+                            value = float(data[3])
+                        else:
+                            value = int(data[3])
+                    except ValueError:
+                        print("Orion5_Server: ValueError in conversion")
+                        continue
+                    orion.joints[data_dict['jointID']].setVariable(data_dict['id1'], data_dict['id2'], value)
                 elif len(data) == 3:
-                    var = orion.joints[data_dict['jointIndex']].getVariable(data_dict['id1'], data_dict['id2'])
+                    var = orion.joints[data_dict['jointID']].getVariable(data_dict['id1'], data_dict['id2'])
                     conn.sendall(str(var).encode())
 
     conn.close()
