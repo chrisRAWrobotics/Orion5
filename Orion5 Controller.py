@@ -109,6 +109,7 @@ class Window(pyglet.window.Window):
     yOffset = -100
     zOffset = -300
     controlState = [-1, -1, -1, False, False, False, False]
+    _scalers = {'Shoulder': (1+(52/28))}
     _zonewidth = 25
     _controlzposition = -100
     _controlscaler = 0.097
@@ -603,7 +604,7 @@ class Window(pyglet.window.Window):
     def update(self, yoyo):
         if self.controlState[4]:
             self._armVARS['Turret'] = -arm.base.getPosition()
-            self._armVARS['Shoulder'] = arm.shoulder.getPosition()
+            self._armVARS['Shoulder'] = arm.shoulder.getPosition() / self._scalers['Shoulder']
             self._armVARS['Elbow'] = arm.elbow.getPosition()
             self._armVARS['Wrist'] = arm.wrist.getPosition()
             self._armVARS['Claw'] = arm.claw.getPosition()
@@ -625,7 +626,7 @@ class Window(pyglet.window.Window):
         if self.controlState[6]:
             #sequencer
             if (abs(DifferentialWrapped360(self._armVARS['Turret'], -arm.base.getPosition()))
-                    + abs(DifferentialWrapped360(self._armVARS['Shoulder'], arm.shoulder.getPosition()))
+                    + abs(DifferentialWrapped360(self._armVARS['Shoulder'], arm.shoulder.getPosition() / self._scalers['Shoulder']) )
                     + abs(DifferentialWrapped360(self._armVARS['Elbow'], arm.elbow.getPosition()))
                     + abs(DifferentialWrapped360(self._armVARS['Wrist'], arm.wrist.getPosition()))
                     + abs(DifferentialWrapped360(self._armVARS['Claw'], arm.claw.getPosition()))) < 12:
@@ -634,13 +635,13 @@ class Window(pyglet.window.Window):
                     self._sequenceIterator = -1
             '''else:
                 print(abs(DifferentialWrapped360(self._armVARS['Turret'], -arm.base.getPosition()))
-                    , abs(DifferentialWrapped360(self._armVARS['Shoulder'], arm.shoulder.getPosition()))
+                    , abs(DifferentialWrapped360(self._armVARS['Shoulder'], arm.shoulder.getPosition()/ self._scalers['Shoulder']))
                     , abs(DifferentialWrapped360(self._armVARS['Elbow'], arm.elbow.getPosition()))
                     , abs(DifferentialWrapped360(self._armVARS['Wrist'], arm.wrist.getPosition()))
                     , abs(DifferentialWrapped360(self._armVARS['Claw'], arm.claw.getPosition())))'''
         if (not self.controlState[4] and self.controlState[3]):
             temp = [abs(self._armVARS['Turret'] + arm.base.getPosition()) / MAXSERVOSPEEDS[0]['Turret'],
-                    abs(self._armVARS['Shoulder'] - arm.shoulder.getPosition()) / MAXSERVOSPEEDS[0]['Shoulder'],
+                    abs(self._armVARS['Shoulder'] - (arm.shoulder.getPosition()/ self._scalers['Shoulder'])) / MAXSERVOSPEEDS[0]['Shoulder'],
                     abs(self._armVARS['Elbow'] - arm.elbow.getPosition()) / MAXSERVOSPEEDS[0]['Elbow'],
                     abs(self._armVARS['Wrist'] - arm.wrist.getPosition()) / MAXSERVOSPEEDS[0]['Wrist'],
                     abs(self._armVARS['Claw'] - arm.claw.getPosition()) / MAXSERVOSPEEDS[0]['Claw']]
@@ -649,11 +650,11 @@ class Window(pyglet.window.Window):
                 if item > maxSpeed:
                     maxSpeed = 0.0 + item
             #arm.setTimeToGoal(maxSpeed)
-            arm.base.setGoalPosition(wrap360(-self._armVARS['Turret']))
-            arm.shoulder.setGoalPosition(wrap360(self._armVARS['Shoulder']))
-            arm.elbow.setGoalPosition(wrap360(self._armVARS['Elbow']))
-            arm.wrist.setGoalPosition(wrap360(self._armVARS['Wrist']))
-            arm.claw.setGoalPosition(wrap360(self._armVARS['Claw']))
+            arm.base.setGoalPosition(wrap360f(-self._armVARS['Turret']))
+            arm.shoulder.setGoalPosition(wrap360f(self._armVARS['Shoulder'] * self._scalers['Shoulder']))
+            arm.elbow.setGoalPosition(wrap360f(self._armVARS['Elbow']))
+            arm.wrist.setGoalPosition(wrap360f(self._armVARS['Wrist']))
+            arm.claw.setGoalPosition(wrap360f(self._armVARS['Claw']))
 
     def on_draw(self):
         global arm

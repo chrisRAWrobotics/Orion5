@@ -282,8 +282,6 @@ class SerialThread(threading.Thread):
                 unpacked = struct.unpack('HHHHHHHHHHHHHHH', bytes(data))
                 for i in range(len(self.arm.joints)):
                     position = G15AngleTo360(unpacked[i*3+0])
-                    if i == 1:
-                        position /= 2.857
                     self.arm.joints[i].setVariable('feedback variables', 'currentPosition', position)
                     self.arm.joints[i].setVariable('feedback variables', 'currentVelocity', unpacked[i*3+1])
                     self.arm.joints[i].setVariable('feedback variables', 'currentLoad', unpacked[i*3+2])
