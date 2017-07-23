@@ -39,41 +39,12 @@ print('KEYBOARD CONTROLS:',
 ZONEWIDTH = 25
 WindowProps = [800, 600]
 WINDOW   = [WindowProps[0] + 4 * ZONEWIDTH, WindowProps[1] + 2 * ZONEWIDTH]
+print(WINDOW)
 INCREMENT = 5
 CONTROLZPOSITION = -100
 CONTROLSCALER = 0.097
 CONTROLSIZE = ZONEWIDTH*CONTROLSCALER
 
-ZONES = [['Claw',[WINDOW[0] - ZONEWIDTH,
-                       ZONEWIDTH,
-                       WINDOW[0],
-                       WINDOW[1]],
-          [0,0]],  #Third Zone Second Left, Claw Open?
-         ['Attack Angle', [ZONEWIDTH,
-                           2 * ZONEWIDTH,
-                           2 * ZONEWIDTH,
-                           WINDOW[1]],
-          [0,0]],  # Fifth Zone Second from Right, Attack Angle
-         ['X', [0,
-                0,
-                WINDOW[0],
-                ZONEWIDTH],
-          [0,0]],  # Second zone bottom, X Position
-         ['Y',[0,
-               ZONEWIDTH,
-               ZONEWIDTH,
-               WINDOW[1]],
-          [0,0]],  #First Zone Left, Y Position
-         ['Attack Depth', [WINDOW[0] - 2 * ZONEWIDTH,
-                           2 * ZONEWIDTH,
-                           WINDOW[0] - ZONEWIDTH,
-                           WINDOW[1]],
-          [0,0]], #Sixth Zone Right, Attack Depth
-         ['Turret',[ZONEWIDTH,
-                          ZONEWIDTH,
-                          WINDOW[0] - ZONEWIDTH,
-                          2 * ZONEWIDTH],
-          [0,0]]]  #Fourth Zone Second from Bottom, Turret Angle
 armConstants = {'X lims':[500.0,1.0,-250.0, False],
                 'Z lims':[500.0,1.0,-250.0, False],
                 'Attack Angle lims':[360.0,1.0,0.0, True],
@@ -138,6 +109,12 @@ class Window(pyglet.window.Window):
     yOffset = -100
     zOffset = -300
     controlState = [-1, -1, -1, False, False, False, False]
+    _zonewidth = 25
+    _controlzposition = -100
+    _controlscaler = 0.097
+    _controlsize = None
+    _window = None
+    _zones = None
     _MousePos = [0,0]
     _armVARS = {'X': 400.0,
                 'Z': 50.0,
@@ -264,65 +241,99 @@ class Window(pyglet.window.Window):
                   [0, 0, True, key.MOTION_UP, key.MOTION_DOWN],
                   [0, 0, True, key.MOTION_BACKSPACE, key.MOTION_DELETE],
                   [0, 0, False, key.MOTION_PREVIOUS_WORD, key.MOTION_NEXT_WORD]]]
-    _ControlVars = {'Claw':[(WINDOW[0]/2)-ZONEWIDTH/2,
-                                 (ZONEWIDTH - WINDOW[1] / 2) + ZONEWIDTH / 2,
+    _ControlVars = None
+
+    def __init__(self, width, height, title=''):
+        global arm
+        super(Window, self).__init__(width, height, title, resizable=True)
+        self._window = [WINDOW[0], WINDOW[1]]
+        self.set_minimum_size(self._window[0], self._window[1])
+        self._zones = [['Claw', [self._window[0] - self._zonewidth,
+                                 self._zonewidth,
+                                 self._window[0],
+                                 self._window[1]],
+              [0, 0]],  # Third Zone Second Left, Claw Open?
+             ['Attack Angle', [self._zonewidth,
+                               2 * self._zonewidth,
+                               2 * self._zonewidth,
+                               self._window[1]],
+              [0, 0]],  # Fifth Zone Second from Right, Attack Angle
+             ['X', [0,
+                    0,
+                    self._window[0],
+                    self._zonewidth],
+              [0, 0]],  # Second zone bottom, X Position
+             ['Y', [0,
+                    self._zonewidth,
+                    self._zonewidth,
+                    self._window[1]],
+              [0, 0]],  # First Zone Left, Y Position
+             ['Attack Depth', [self._window[0] - 2 * self._zonewidth,
+                               2 * self._zonewidth,
+                               self._window[0] - self._zonewidth,
+                               self._window[1]],
+              [0, 0]],  # Sixth Zone Right, Attack Depth
+             ['Turret', [self._zonewidth,
+                         self._zonewidth,
+                         self._window[0] - self._zonewidth,
+                         2 * self._zonewidth],
+              [0, 0]]]  # Fourth Zone Second from Bottom, Turret Angle
+        self._ControlVars = {'Claw':[(self._window[0]/2)-self._zonewidth/2,
+                                 (self._zonewidth - self._window[1] / 2) + self._zonewidth / 2,
                                  0,
-                                 abs((ZONEWIDTH - WINDOW[1] / 2) + ZONEWIDTH/2)*2 + ZONEWIDTH,
+                                 abs((self._zonewidth - self._window[1] / 2) + self._zonewidth/2)*2 + self._zonewidth,
                                  armConstants['Claw lims'][2],
                                  armConstants['Claw lims'][0]-armConstants['Claw lims'][2],
                                  'Claw',
                                  0],
-                    'Attack Angle':[(ZONEWIDTH-WINDOW[0]/2)+ZONEWIDTH/2,
-                                    (2 * ZONEWIDTH - WINDOW[1] / 2) + ZONEWIDTH / 2,
+                    'Attack Angle':[(self._zonewidth-self._window[0]/2)+self._zonewidth/2,
+                                    (2 * self._zonewidth - self._window[1] / 2) + self._zonewidth / 2,
                                     0,
-                                    abs((2 * ZONEWIDTH - WINDOW[1] / 2) + ZONEWIDTH / 2)*2 + 2 * ZONEWIDTH,
+                                    abs((2 * self._zonewidth - self._window[1] / 2) + self._zonewidth / 2)*2 + 2 * self._zonewidth,
                                     armConstants['Attack Angle lims'][2],
                                     armConstants['Attack Angle lims'][0] - armConstants['Attack Angle lims'][2],
                                     'Attack Angle',
                                     .5],
-                    'X':[(-WINDOW[0]/2)+ZONEWIDTH/2,
-                         (-WINDOW[1]/2)+ZONEWIDTH/2,
-                         abs((-WINDOW[0]/2)+ZONEWIDTH/2)*2,
+                    'X':[(-self._window[0]/2)+self._zonewidth/2,
+                         (-self._window[1]/2)+self._zonewidth/2,
+                         abs((-self._window[0]/2)+self._zonewidth/2)*2,
                          0,
                          armConstants['X lims'][2],
                          armConstants['X lims'][0] - armConstants['X lims'][2],
                          'X',
                          0],
-                    'Y':[(-WINDOW[0]/2)+ZONEWIDTH/2,
-                         (ZONEWIDTH - WINDOW[1] / 2) + ZONEWIDTH / 2,
+                    'Y':[(-self._window[0]/2)+self._zonewidth/2,
+                         (self._zonewidth - self._window[1] / 2) + self._zonewidth / 2,
                          0,
-                         abs((ZONEWIDTH - WINDOW[1] / 2) + ZONEWIDTH / 2)*2 + ZONEWIDTH,
+                         abs((self._zonewidth - self._window[1] / 2) + self._zonewidth / 2)*2 + self._zonewidth,
                          armConstants['Z lims'][2],
                          armConstants['Z lims'][0] - armConstants['Z lims'][2],
                          'Z',
                          0],
-                    'Attack Depth':[(WINDOW[0]/2-ZONEWIDTH)-ZONEWIDTH/2,
-                                    (2*ZONEWIDTH-WINDOW[1] / 2) + ZONEWIDTH / 2,
+                    'Attack Depth':[(self._window[0]/2-self._zonewidth)-self._zonewidth/2,
+                                    (2*self._zonewidth-self._window[1] / 2) + self._zonewidth / 2,
                                     0,
-                                    abs((2*ZONEWIDTH-WINDOW[1] / 2) + ZONEWIDTH / 2)*2 + 2 * ZONEWIDTH,
+                                    abs((2*self._zonewidth-self._window[1] / 2) + self._zonewidth / 2)*2 + 2 * self._zonewidth,
                                     armConstants['Attack Depth lims'][2],
                                     armConstants['Attack Depth lims'][0] - armConstants['Attack Depth lims'][2],
                                     'Attack Depth',
                                     0],
-                    'Turret':[(ZONEWIDTH-WINDOW[0]/2)+ZONEWIDTH/2,
-                                    (ZONEWIDTH-WINDOW[1]/2)+ZONEWIDTH/2,
-                                    abs((ZONEWIDTH - WINDOW[0] / 2) + ZONEWIDTH / 2) * 2,
+                    'Turret':[(self._zonewidth-self._window[0]/2)+self._zonewidth/2,
+                                    (self._zonewidth-self._window[1]/2)+self._zonewidth/2,
+                                    abs((self._zonewidth - self._window[0] / 2) + self._zonewidth / 2) * 2,
                                     0,
                                     armConstants['Turret lims'][2],
                                     armConstants['Turret lims'][0] - armConstants['Turret lims'][2],
                                     'Turret',
                                     0]}
-
-    def __init__(self, width, height, title=''):
-        global arm
-        super(Window, self).__init__(width, height, title)
+        self._controlsize = self._zonewidth * self._controlscaler
         for item1 in self._interferenceFields[0]:
-            print('new')
+            #print('new')
             for item2 in item1[1:]:
                 item2['theta'] = rect2pol(item2['x'], item2['y'], False)
                 item2['r'] = rect2pol(item2['x'], item2['y'], True)
-                print(item2['r'], item2['theta'], item2['x'], item2['y'],
-                      pol2rect(item2['r'], item2['theta'], True), pol2rect(item2['r'], item2['theta'], False))
+                '''print(item2['r'], item2['theta'], item2['x'], item2['y'],
+                      pol2rect(item2['r'], item2['theta'], True), pol2rect(item2['r'], item2['theta'], False))'''
 
         glClearColor(0, 0, 0, 1)
         glEnable(GL_DEPTH_TEST)
@@ -334,12 +345,12 @@ class Window(pyglet.window.Window):
         for iterator1 in self._Controls[0]:
             self._Controls[1].append(pyglet.graphics.Batch())
             div = 3
-            vertices = [-CONTROLSIZE / div, -CONTROLSIZE / div, 0,
-                        CONTROLSIZE / div, -CONTROLSIZE / div, 0,
-                        -CONTROLSIZE / div, CONTROLSIZE / div, 0,
-                        -CONTROLSIZE / div, CONTROLSIZE / div, 0,
-                        CONTROLSIZE / div, -CONTROLSIZE / div, 0,
-                        CONTROLSIZE / div, CONTROLSIZE / div, 0]
+            vertices = [-self._controlsize / div, -self._controlsize / div, 0,
+                        self._controlsize / div, -self._controlsize / div, 0,
+                        -self._controlsize / div, self._controlsize / div, 0,
+                        -self._controlsize / div, self._controlsize / div, 0,
+                        self._controlsize / div, -self._controlsize / div, 0,
+                        self._controlsize / div, self._controlsize / div, 0]
             normals = [0.0,0.0,1.0,
                        0.0,0.0,1.0,
                        0.0,0.0,1.0,
@@ -382,6 +393,98 @@ class Window(pyglet.window.Window):
     def on_resize(self, width, height):
         # set the Viewport
         glViewport(0, 0, width, height)
+        self._window = [width, height]
+        self.set_size(width, height)
+        self._controlsize = self._zonewidth * self._controlscaler
+        self._zones = [['Claw', [self._window[0] - self._zonewidth,
+                                 self._zonewidth,
+                                 self._window[0],
+                                 self._window[1]],
+                        [0, 0]],  # Third Zone Second Left, Claw Open?
+                       ['Attack Angle', [self._zonewidth,
+                                         2 * self._zonewidth,
+                                         2 * self._zonewidth,
+                                         self._window[1]],
+                        [0, 0]],  # Fifth Zone Second from Right, Attack Angle
+                       ['X', [0,
+                              0,
+                              self._window[0],
+                              self._zonewidth],
+                        [0, 0]],  # Second zone bottom, X Position
+                       ['Y', [0,
+                              self._zonewidth,
+                              self._zonewidth,
+                              self._window[1]],
+                        [0, 0]],  # First Zone Left, Y Position
+                       ['Attack Depth', [self._window[0] - 2 * self._zonewidth,
+                                         2 * self._zonewidth,
+                                         self._window[0] - self._zonewidth,
+                                         self._window[1]],
+                        [0, 0]],  # Sixth Zone Right, Attack Depth
+                       ['Turret', [self._zonewidth,
+                                   self._zonewidth,
+                                   self._window[0] - self._zonewidth,
+                                   2 * self._zonewidth],
+                        [0, 0]]]  # Fourth Zone Second from Bottom, Turret Angle
+        self._ControlVars = {'Claw': [(self._window[0] / 2) - self._zonewidth / 2,
+                                      (self._zonewidth - self._window[1] / 2) + self._zonewidth / 2,
+                                      0,
+                                      abs((self._zonewidth - self._window[
+                                          1] / 2) + self._zonewidth / 2) * 2 + self._zonewidth,
+                                      armConstants['Claw lims'][2],
+                                      armConstants['Claw lims'][0] - armConstants['Claw lims'][2],
+                                      'Claw',
+                                      0],
+                             'Attack Angle': [(self._zonewidth - self._window[0] / 2) + self._zonewidth / 2,
+                                              (2 * self._zonewidth - self._window[1] / 2) + self._zonewidth / 2,
+                                              0,
+                                              abs((2 * self._zonewidth - self._window[
+                                                  1] / 2) + self._zonewidth / 2) * 2 + 2 * self._zonewidth,
+                                              armConstants['Attack Angle lims'][2],
+                                              armConstants['Attack Angle lims'][0] - armConstants['Attack Angle lims'][
+                                                  2],
+                                              'Attack Angle',
+                                              .5],
+                             'X': [(-self._window[0] / 2) + self._zonewidth / 2,
+                                   (-self._window[1] / 2) + self._zonewidth / 2,
+                                   abs((-self._window[0] / 2) + self._zonewidth / 2) * 2,
+                                   0,
+                                   armConstants['X lims'][2],
+                                   armConstants['X lims'][0] - armConstants['X lims'][2],
+                                   'X',
+                                   0],
+                             'Y': [(-self._window[0] / 2) + self._zonewidth / 2,
+                                   (self._zonewidth - self._window[1] / 2) + self._zonewidth / 2,
+                                   0,
+                                   abs((self._zonewidth - self._window[
+                                       1] / 2) + self._zonewidth / 2) * 2 + self._zonewidth,
+                                   armConstants['Z lims'][2],
+                                   armConstants['Z lims'][0] - armConstants['Z lims'][2],
+                                   'Z',
+                                   0],
+                             'Attack Depth': [(self._window[0] / 2 - self._zonewidth) - self._zonewidth / 2,
+                                              (2 * self._zonewidth - self._window[1] / 2) + self._zonewidth / 2,
+                                              0,
+                                              abs((2 * self._zonewidth - self._window[
+                                                  1] / 2) + self._zonewidth / 2) * 2 + 2 * self._zonewidth,
+                                              armConstants['Attack Depth lims'][2],
+                                              armConstants['Attack Depth lims'][0] - armConstants['Attack Depth lims'][
+                                                  2],
+                                              'Attack Depth',
+                                              0],
+                             'Turret': [(self._zonewidth - self._window[0] / 2) + self._zonewidth / 2,
+                                        (self._zonewidth - self._window[1] / 2) + self._zonewidth / 2,
+                                        abs((self._zonewidth - self._window[0] / 2) + self._zonewidth / 2) * 2,
+                                        0,
+                                        armConstants['Turret lims'][2],
+                                        armConstants['Turret lims'][0] - armConstants['Turret lims'][2],
+                                        'Turret',
+                                        0]}
+        smaller = width
+        if width > height:
+            smaller = height
+        self._controlzposition = - (100 + ((smaller-650)*.153))
+
         # using Projection mode
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
@@ -402,9 +505,9 @@ class Window(pyglet.window.Window):
         self.controlState[1] = 0#iterator1
         self._MousePos[0] = x
         self._MousePos[1] = y
-        for iterator1 in range(len(ZONES)):
-            if ((abs((x - WINDOW[0] / 2) * CONTROLSCALER - self._Controls[2][iterator1][0]) < (ZONEWIDTH / 2)*CONTROLSCALER)
-                and (abs((y - WINDOW[1] / 2) * CONTROLSCALER - self._Controls[2][iterator1][1]) < (ZONEWIDTH / 2)*CONTROLSCALER)):
+        for iterator1 in range(len(self._zones)):
+            if ((abs((x - self._window[0] / 2) * self._controlscaler - self._Controls[2][iterator1][0]) < (self._zonewidth / 2)*self._controlscaler)
+                and (abs((y - self._window[1] / 2) * self._controlscaler - self._Controls[2][iterator1][1]) < (self._zonewidth / 2)*self._controlscaler)):
                 self.controlState[1] = iterator1 + 1
                 '''
                 if self.controlState[1] != 0:
@@ -421,12 +524,14 @@ class Window(pyglet.window.Window):
 
     def on_key_press(self, symbol, modifiers):
         if symbol == key.Q:
+            self.controlState[4] = False
             self.controlState[3] = not self.controlState[3]
             if self.controlState[3]:
                 arm.enableTorque()
             else:
                 arm.releaseTorque()
         elif symbol == key.A:
+            self.controlState[3] = False
             self.controlState[4] = not self.controlState[4]
         elif symbol == key.E:
             if len(self._sequence) != 0:
@@ -558,25 +663,25 @@ class Window(pyglet.window.Window):
         glEnable(GL_LIGHT0)
         for iterator in range(len(self._Controls[0])):
             glLoadIdentity()
-            scaler = (self._armVARS[self._ControlVars[self._Controls[0][iterator]][6]]
-                      - self._ControlVars[self._Controls[0][iterator]][4]) \
-                     / self._ControlVars[self._Controls[0][iterator]][5] \
-                     + self._ControlVars[self._Controls[0][iterator]][7]
+            scaler = ((self._armVARS[self._ControlVars[self._Controls[0][iterator]][6]]
+                       - self._ControlVars[self._Controls[0][iterator]][4])
+                      / self._ControlVars[self._Controls[0][iterator]][5]
+                      + self._ControlVars[self._Controls[0][iterator]][7])
             if scaler > 1:
                 scaler -= 1
             self._Controls[2][iterator][0] = ((self._ControlVars[self._Controls[0][iterator]][0]
-                                               * CONTROLSCALER)
+                                               * self._controlscaler)
                                               + (self._ControlVars[self._Controls[0][iterator]][2]
-                                                 * CONTROLSCALER
+                                                 * self._controlscaler
                                                  * scaler))
             self._Controls[2][iterator][1] = ((self._ControlVars[self._Controls[0][iterator]][1]
-                                               * CONTROLSCALER)
+                                               * self._controlscaler)
                                               + (self._ControlVars[self._Controls[0][iterator]][3]
-                                                 * CONTROLSCALER
+                                                 * self._controlscaler
                                                  * scaler))
             glTranslatef(self._Controls[2][iterator][0],
                          self._Controls[2][iterator][1],
-                         CONTROLZPOSITION)
+                         self._controlzposition)
             glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE)
             glEnable(GL_COLOR_MATERIAL)
             glColor3f(.6,.6,.6)
@@ -793,12 +898,12 @@ class Window(pyglet.window.Window):
             self.yOffset += dy * .5
         if self.controlState[1] > 0:
             if self._Controls[2][self.controlState[1] - 1][2]:
-                thepercent = (((y - ZONES[self.controlState[1] - 1][1][1]+(ZONEWIDTH/2))
-                               / (ZONES[self.controlState[1] - 1][1][3] - ZONES[self.controlState[1] - 1][1][1]))
+                thepercent = (((y - self._zones[self.controlState[1] - 1][1][1]+(self._zonewidth/2))
+                               / (self._zones[self.controlState[1] - 1][1][3] - self._zones[self.controlState[1] - 1][1][1]))
                               +  self._ControlVars[self._Controls[0][self.controlState[1] - 1]][7])
             else:
-                thepercent = (((x - ZONES[self.controlState[1] - 1][1][0] + (ZONEWIDTH / 2))
-                              / (ZONES[self.controlState[1] - 1][1][2] - ZONES[self.controlState[1] - 1][1][0]))
+                thepercent = (((x - self._zones[self.controlState[1] - 1][1][0] + (self._zonewidth / 2))
+                              / (self._zones[self.controlState[1] - 1][1][2] - self._zones[self.controlState[1] - 1][1][0]))
                               + self._ControlVars[self._Controls[0][self.controlState[1] - 1]][7])
             if ((self._ControlVars[self._Controls[0][self.controlState[1] - 1]][7] != 0) and (thepercent > 1)):
                 thepercent -= 1
@@ -811,6 +916,10 @@ class Window(pyglet.window.Window):
 def Main():
     global ORION5
     ORION5 = Window(WINDOW[0], WINDOW[1], 'Orion5 Visualiser and Controller')
+    #ORION5 = Window(resizable=True)
+    icon1 = pyglet.image.load('RR_logo_512x512.png')
+    ORION5.set_icon(icon1)
+    #ORION5.resizable=True
     pyglet.app.run()
 
 if __name__ == '__main__':
