@@ -100,6 +100,48 @@ def DifferentialWrapped360(arg1, arg2):
         retValue +=360
     return retValue
 
+def ComQuery():
+    global comListObj, comObj
+    import tkinter, tkinter.ttk
+    font_size = 14
+    comQuery = tkinter.Tk()
+    comQuery.title('Com port selector')
+    comQuery.minsize(width=100, height=100)
+    goButton = tkinter.Button(comQuery, text="Select", font = ("Arial", font_size, "bold"))
+    comList = tkinter.StringVar()
+    comPorts = tkinter.ttk.Combobox(comQuery, font = ("Arial", font_size, "bold"), width = 40, textvariable = comList, state = 'readonly')
+    comListObj = None
+    comObj = None
+    def RefreshComs(pokeThrough):
+        global comListObj
+        import serial.tools.list_ports
+        comListObj = serial.tools.list_ports.comports()
+        thing2 = ['None']
+        for item in comListObj:
+            thing2.append(str(item))
+        for iterator1 in range(len(thing2)):
+            if iterator1 == 0:
+                thing3 = (str(iterator1)+' '+thing2[iterator1],)
+            elif (comListObj[iterator1-1].vid == 1027 and comListObj[iterator1-1].pid == 24597):
+                thing3 = thing3 + (str(iterator1)+' '+thing2[iterator1],)
+        comPorts['values'] = thing3
+    RefreshComs('pelicanCase')
+    comPorts.grid(row=1, column=1, columnspan=4)
+    goButton.grid(row=2, column=1, columnspan=3)
+    comPorts.bind('<<ComboboxSelected>>', RefreshComs)
+    def GoButton():
+        global comListObj, comObj
+        try:
+            comListObj.append(None)
+            comObj = comListObj[int(comList.get()[:comList.get().find(' ')]) - 1]
+        except:
+            print('Error picking com port')
+        comQuery.quit()
+        comQuery.destroy()
+    goButton.configure(command=GoButton)
+    comQuery.mainloop()
+    return comObj
+
 class Window(pyglet.window.Window):
     # Cube 3D start rotation
     xRotation = -80
@@ -919,12 +961,21 @@ class Window(pyglet.window.Window):
                                 )
 
 def Main():
+    global serialPortName
+    comObj = ComQuery()
+    print(comObj)
+    try:
+        serialPortName = str(comObj.device)
+        #if comObj != None:
+        print(comObj.device, comObj.name, comObj.vid, comObj.pid)
+    except:
+        pass
+
+
     global ORION5
     ORION5 = Window(WINDOW[0], WINDOW[1], 'Orion5 Visualiser and Controller')
-    #ORION5 = Window(resizable=True)
     icon1 = pyglet.image.load('RR_logo_512x512.png')
     ORION5.set_icon(icon1)
-    #ORION5.resizable=True
     pyglet.app.run()
 
 if __name__ == '__main__':

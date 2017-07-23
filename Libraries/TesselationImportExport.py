@@ -103,3 +103,4 @@ def PullFileNames(extension, subFolder):
     for iterator1 in range(len(fileNames)):
         fileSets[int(fileNames[iterator1][:3])].append(subFolder+'/'+fileNames[iterator1])
     return fileSets
+
