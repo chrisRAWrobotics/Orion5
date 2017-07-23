@@ -282,8 +282,6 @@ class SerialThread(threading.Thread):
                 unpacked = struct.unpack('HHHHHHHHHHHHHHH', bytes(data))
                 for i in range(len(self.arm.joints)):
                     position = G15AngleTo360(unpacked[i*3+0])
-                    if i == 1:
-                        position /= 2.857
                     self.arm.joints[i].setVariable('feedback variables', 'currentPosition', position)
                     self.arm.joints[i].setVariable('feedback variables', 'currentVelocity', unpacked[i*3+1])
                     self.arm.joints[i].setVariable('feedback variables', 'currentLoad', unpacked[i*3+2])
@@ -396,11 +394,11 @@ class Orion5(object):
         self.serial.start()
 
         # name, ID, cwAngleLimit, ccwAngleLimit, margin, slope, punch, speed, mode
-        self.base =     Joint('base',     0,   0, 1087, 1, 120,  35, 100, 0)
-        self.shoulder = Joint('shoulder', 1,   0, 1087, 1, 120,  35, 100, 0)
-        self.elbow =    Joint('elbow',    2,  60, 1027, 1, 120,  35, 100, 0)
-        self.wrist =    Joint('wrist',    3, 550,  540, 1, 120,  35, 100, 0)
-        self.claw =     Joint('claw',     4,   0, 1087, 1, 120,  35, 100, 0)
+        self.base =     Joint('base',     0,   0, 1087, 1, 120,  35,  60, 0)
+        self.shoulder = Joint('shoulder', 1,  30, 1057, 1, 120,  35,  80, 0)
+        self.elbow =    Joint('elbow',    2,  60, 1027, 1, 120,  35,  80, 0)
+        self.wrist =    Joint('wrist',    3, 136,  951, 1, 120,  35, 100, 0)
+        self.claw =     Joint('claw',     4,  60,  755, 1, 120,  35,  70, 0)
 
         self.joints = [self.base, self.shoulder, self.elbow, self.wrist, self.claw]
 
