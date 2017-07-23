@@ -49,7 +49,7 @@ armConstants = {'X lims':[500.0,1.0,-250.0, False],
                 'Z lims':[500.0,1.0,-250.0, False],
                 'Attack Angle lims':[360.0,1.0,0.0, True],
                 'Attack Depth lims':[500.0,1.0,-250.0, False],
-                'Claw lims':[300.0, 1.0, 120.0, False],
+                'Claw lims':[250.0, 1.0, 20.0, False],
                 'Turret lims':[360.0,1.0,0.0, True],
                 'Shoulder lims':[360.0,1.0,0.0, True],
                 'Bicep lims':[360.0,1.0,0.0, True],
@@ -389,6 +389,9 @@ class Window(pyglet.window.Window):
                                                  ('v3f/static', vertices),
                                                  ('n3f/static', normals))
         pyglet.clock.schedule_interval(self.update, 1 / 30.0)
+        for item1 in self._Controls[2]:
+            self.on_text_motion(item1[3])
+            self.on_text_motion(item1[4])
         #print(self._ControlVars)
 
     def on_resize(self, width, height):
@@ -532,6 +535,7 @@ class Window(pyglet.window.Window):
             else:
                 arm.releaseTorque()
         elif symbol == key.A:
+            arm.releaseTorque()
             self.controlState[3] = False
             self.controlState[4] = not self.controlState[4]
         elif symbol == key.E:
@@ -708,9 +712,9 @@ class Window(pyglet.window.Window):
             elif self._ModelIDs[iterator1] == 4:
                 glTranslatef(self._armVARS['Wrist Pos'][0], self._armVARS['Wrist Pos'][1], self._armVARS['Wrist Pos'][2])
             elif self._ModelIDs[iterator1] == 5:
-                glTranslatef(self._armVARS['Wrist Pos'][0], - (self._armVARS['Claw'] - 120) / 7.2, self._armVARS['Wrist Pos'][2])
+                glTranslatef(self._armVARS['Wrist Pos'][0], - (self._armVARS['Claw'] - 20) / 11, self._armVARS['Wrist Pos'][2])
             elif self._ModelIDs[iterator1] == 6:
-                glTranslatef(self._armVARS['Wrist Pos'][0], (self._armVARS['Claw'] - 120) / 7.2, self._armVARS['Wrist Pos'][2])
+                glTranslatef(self._armVARS['Wrist Pos'][0], (self._armVARS['Claw'] - 20) / 11, self._armVARS['Wrist Pos'][2])
 
             #Part Rotate
             if self._ModelIDs[iterator1] > 3:
