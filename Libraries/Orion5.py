@@ -395,10 +395,10 @@ class Orion5(object):
 
         # name, ID, cwAngleLimit, ccwAngleLimit, margin, slope, punch, speed, mode
         self.base =     Joint('base',     0,   0, 1087, 1, 120,  35,  60, 0)
-        self.shoulder = Joint('shoulder', 1,  30, 1057, 1, 120,  35,  80, 0)
+        self.shoulder = Joint('shoulder', 1,  30, 1057, 1, 120,  35, 150, 0)
         self.elbow =    Joint('elbow',    2,  60, 1027, 1, 120,  35,  80, 0)
-        self.wrist =    Joint('wrist',    3, 136,  951, 1, 120,  35, 100, 0)
-        self.claw =     Joint('claw',     4,  60,  755, 1, 120,  35,  70, 0)
+        self.wrist =    Joint('wrist',    3, 136,  951, 1, 120,  35,  60, 0)
+        self.claw =     Joint('claw',     4,  60,  1087, 1, 120,  35,  70, 0)
 
         self.joints = [self.base, self.shoulder, self.elbow, self.wrist, self.claw]
 
@@ -409,12 +409,25 @@ class Orion5(object):
         self.wrist.setGoalPosition(wrist)
 
     def setJointAnglesArray(self, angles):
-        assert 4 <= len(angles) <= 5
         for i in range(len(angles)):
-            self.joints[i].setGoalPosition(angles[i])
+            self.joints[i].setVariable('control variables', 'goalPosition', angles[i])
+
+    def setJointSpeedsArray(self, speeds):
+        for i in range(len(speeds)):
+            self.joints[i].setVariable('control variables', 'desiredSpeed', speeds[i])
+
+    def setJointTorqueEnablesArray(self, enables):
+        for i in range(len(enables)):
+            self.joints[i].setVariable('control variables', 'enable', enables[i])
 
     def getJointAngles(self):
         return [joint.getPosition() for joint in self.joints]
+
+    def getJointSpeeds(self):
+        return [joint.getVariable('feedback variables', 'currentVelocity') for joint in self.joints]
+
+    def getJointLoads(self):
+        return [joint.getVariable('feedback variables', 'currentLoad') for joint in self.joints]
 
     def releaseTorque(self):
         for joint in self.joints:
