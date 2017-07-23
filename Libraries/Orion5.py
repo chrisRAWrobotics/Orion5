@@ -394,11 +394,11 @@ class Orion5(object):
         self.serial.start()
 
         # name, ID, cwAngleLimit, ccwAngleLimit, margin, slope, punch, speed, mode
-        self.base =     Joint('base',     0,   0, 1087, 1, 120,  35, 100, 0)
-        self.shoulder = Joint('shoulder', 1,   0, 1087, 1, 120,  35, 100, 0)
-        self.elbow =    Joint('elbow',    2,  60, 1027, 1, 120,  35, 100, 0)
-        self.wrist =    Joint('wrist',    3, 550,  540, 1, 120,  35, 100, 0)
-        self.claw =     Joint('claw',     4,   0, 1087, 1, 120,  35, 100, 0)
+        self.base =     Joint('base',     0,   0, 1087, 1, 120,  35,  60, 0)
+        self.shoulder = Joint('shoulder', 1,  30, 1057, 1, 120,  35,  80, 0)
+        self.elbow =    Joint('elbow',    2,  60, 1027, 1, 120,  35,  80, 0)
+        self.wrist =    Joint('wrist',    3, 136,  951, 1, 120,  35, 100, 0)
+        self.claw =     Joint('claw',     4,  60,  755, 1, 120,  35,  70, 0)
 
         self.joints = [self.base, self.shoulder, self.elbow, self.wrist, self.claw]
 
