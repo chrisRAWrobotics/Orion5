@@ -929,6 +929,7 @@ class Window(pyglet.window.Window):
                     for iterator in range(len(self._armVARS[item])):
                         self._armVARS[item][iterator] = 0.0 + self._armVARS['OLD'][item][iterator]
 
+
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         self._MousePos[0] = x
         self._MousePos[1] = y

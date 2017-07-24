@@ -163,11 +163,11 @@ classdef Orion5 < handle
             end
             
             if strcmp(id1, 'posControl')
-                value = vec2str(value, '%.2f,');
+                value = obj.vec2str(value, '%.2f,');
             elseif strcmp(id1, 'velControl')
-                value = vec2str(value, '%d,');
+                value = obj.vec2str(value, '%d,');
             elseif strcmp(id1, 'enControl')
-                value = vec2str(value, '%d,');
+                value = obj.vec2str(value, '%d,');
             else
                 value = num2str(value);
             end
