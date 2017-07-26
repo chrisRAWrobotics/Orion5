@@ -199,7 +199,7 @@ classdef Orion5 < handle
                     
                 end
                 var = native2unicode(fread(obj.socket, obj.socket.BytesAvailable)');
-                if strcmp(id1, 'posFeedback')
+                if strcmp(id1, 'posFeedback') || strcmp(id1, 'velFeedback') || strcmp(id1, 'torFeedback')
                     var = eval(var);
                 else
                     var = str2double(var);
