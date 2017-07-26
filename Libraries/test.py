@@ -1,7 +1,7 @@
 import Orion5
 import time
 
-orion = Orion5.Orion5('COM4')
+orion = Orion5.Orion5('COM10')
 
 time.sleep(5)
 
@@ -15,7 +15,7 @@ for joint in orion.joints:
 # orion.claw.setGoalPosition(20)
 
 while True:
-    print(orion.claw.getVariable('feedback variables', 'currentLoad'))
+    print(orion.getJointAngles())
     time.sleep(0.1)
     id = int(input('id: '))
     desiredPos = int(input('angle: '))

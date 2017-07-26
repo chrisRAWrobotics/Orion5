@@ -8,7 +8,7 @@ from MathADV import *
 from pyglet.gl import *
 from pyglet.window import key
 import Orion5
-import copy, math
+import copy, math, ctypes
 
 print('KEYBOARD CONTROLS:',
       '\n   Right - Extends tool point',
@@ -289,6 +289,14 @@ class Window(pyglet.window.Window):
     def __init__(self, width, height, title=''):
         global arm
         super(Window, self).__init__(width, height, title, resizable=True)
+
+        # get reference to functions from C library
+        clib = ctypes.cdll.LoadLibrary('libOrion5Kinematics.dll')
+        self.IKinematics = clib.IKinematics
+        self.IKinematics.restype = C_ArmVars
+        # self.CollisionCheck = clib.CollisionCheck
+        # self.CollisionCheck.restype = clib.c_int
+
         self._window = [WINDOW[0], WINDOW[1]]
         self.set_minimum_size(self._window[0], self._window[1])
         self._zones = [['Claw', [self._window[0] - self._zonewidth,
@@ -888,32 +896,30 @@ class Window(pyglet.window.Window):
                     else:
                         self._armVARS[item[1]] = armConstants[item[1] + ' lims'][2]
         try:
-            #if self._armVARS['Turret'] != None: #uneeded check since fixing the ORION5.py
-            # Find the Wrist Point
-            self._armVARS['Wrist Pos'][0] = -self._armVARS['X'] + pol2rect((85.25 + self._armVARS['Attack Depth']) , self._armVARS['Attack Angle'], True)
-            self._armVARS['Wrist Pos'][2] = self._armVARS['Z'] - pol2rect((85.25 + self._armVARS['Attack Depth']) , self._armVARS['Attack Angle'], False)
-            # Check 1 if wrist is too far from shoulder
 
-            b = math.sqrt((abs(self._armVARS['Wrist Pos'][0] - self._armVARS['Shoulder Pos'][0]) ** 2.0) + (abs(self._armVARS['Wrist Pos'][2] - self._armVARS['Shoulder Pos'][2]) ** 2.0))
-            if b > (armConstants['Forearm Len'] + armConstants['Bicep Len']):
-                self._armVARS['Elbow Pos'][0] = self._armVARS['Shoulder Pos'][0] + (armConstants['Bicep Len'] * (self._armVARS['Wrist Pos'][0] - self._armVARS['Shoulder Pos'][0]) / b)
-                self._armVARS['Elbow Pos'][2] = self._armVARS['Shoulder Pos'][2] + (armConstants['Bicep Len'] * (self._armVARS['Wrist Pos'][2] - self._armVARS['Shoulder Pos'][2]) / b)
-                self._armVARS['Wrist Pos'][0] = self._armVARS['Shoulder Pos'][0] + ((armConstants['Forearm Len'] + armConstants['Bicep Len']) * (self._armVARS['Wrist Pos'][0] - self._armVARS['Shoulder Pos'][0]) / b)
-                self._armVARS['Wrist Pos'][2] = self._armVARS['Shoulder Pos'][2] + ((armConstants['Forearm Len'] + armConstants['Bicep Len']) * (self._armVARS['Wrist Pos'][2] - self._armVARS['Shoulder Pos'][2]) / b)
-                self._armVARS['X'] = -self._armVARS['Wrist Pos'][0] + pol2rect((85.25 + self._armVARS['Attack Depth']), self._armVARS['Attack Angle'], True)
-                self._armVARS['Z'] = self._armVARS['Wrist Pos'][2] + pol2rect((85.25 + self._armVARS['Attack Depth']), self._armVARS['Attack Angle'], False)
-                self._armVARS['Shoulder'] = 180.0 - rect2pol(self._armVARS['Wrist Pos'][0] - self._armVARS['Shoulder Pos'][0], self._armVARS['Wrist Pos'][2] - self._armVARS['Shoulder Pos'][2], False)
-                self._armVARS['Elbow Angle'] = 0.0 + self._armVARS['Shoulder']
-            else:
-                self._armVARS['Shoulder'] = 180.0 - rect2pol(self._armVARS['Wrist Pos'][0] - self._armVARS['Shoulder Pos'][0], self._armVARS['Wrist Pos'][2] - self._armVARS['Shoulder Pos'][2], False) + math.acos(((b ** 2.0) + (armConstants['Bicep Len'] ** 2.0) - (armConstants['Forearm Len'] ** 2.0)) / (2.0 * b * armConstants['Bicep Len'])) * 180.0 / math.pi
-                self._armVARS['Elbow Angle'] = self._armVARS['Shoulder'] - 180 + math.acos(((armConstants['Forearm Len'] ** 2) + (armConstants['Bicep Len'] ** 2) - (b ** 2)) / (2 * armConstants['Forearm Len'] * armConstants['Bicep Len'])) * 180.0 / math.pi
-                self._armVARS['Elbow Pos'][0] = self._armVARS['Shoulder Pos'][0] - pol2rect(armConstants['Bicep Len'] , -self._armVARS['Shoulder'], True)
-                self._armVARS['Elbow Pos'][2] = self._armVARS['Shoulder Pos'][2] - pol2rect(armConstants['Bicep Len'] , -self._armVARS['Shoulder'], False)
+            # create instance of the struct class to hand into C library
+            c_armVars = C_ArmVars()
 
-            self._armVARS['Shoulder'] = wrap360f(0.0 + self._armVARS['Shoulder'])
-            self._armVARS['Elbow'] = wrap360f(self._armVARS['Elbow Angle'] - self._armVARS['Shoulder'] + 180.0)
-            self._armVARS['Wrist'] = wrap360f(self._armVARS['Attack Angle'] - self._armVARS['Elbow Angle'] + 180.0)
-        except:
+            # pack values from armVARS into c_armVars
+            for key in self._armVARS['Iter']:
+                value = self._armVARS[key]
+                if type(value) == list:
+                    value = (ctypes.c_double * 3)(value[0], value[1], value[2])
+                else:
+                    value = ctypes.c_double(value)
+                setattr(c_armVars, key.replace(' ', ''), value)
+
+            c_armVars = self.IKinematics(c_armVars)
+
+            for key in self._armVARS['Iter']:
+                value = getattr(c_armVars, key.replace(' ', ''))
+                if type(value) == float:
+                    self._armVARS[key] = value
+                else:
+                    self._armVARS[key] = [value[0], value[1], value[2]]
+
+        except Exception as e:
+            print(e)
             for item in self._armVARS['Iter']:
                 if ((type(self._armVARS['OLD'][item]) == float) or (type(self._armVARS['OLD'][item]) == int)):
                     self._armVARS[item] = 0.0 + self._armVARS['OLD'][item]
@@ -960,6 +966,16 @@ class Window(pyglet.window.Window):
                                  * thepercent
                                  + self._ControlVars[self._Controls[0][self.controlState[1] - 1]][4])
                                 )
+
+# create C compatible structure from armVARS dictionary
+# not including the OLD and Iter sections
+class C_ArmVars(ctypes.Structure):
+    _fields_ = []
+    for key in Window._armVARS['Iter']:
+        cType = ctypes.c_double
+        if type(Window._armVARS[key]) == list:
+            cType = ctypes.POINTER(ctypes.c_double)
+        _fields_.append((key.replace(' ', ''), cType))
 
 def Main():
     global serialPortName
