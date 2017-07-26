@@ -967,7 +967,7 @@ class Window(pyglet.window.Window):
                                  + self._ControlVars[self._Controls[0][self.controlState[1] - 1]][4])
                                 )
 
-# create C compatible structure from armVARS dictionary
+# C compatible structure from armVARS dictionary
 # not including the OLD and Iter sections
 class C_ArmVars(ctypes.Structure):
     _fields_ = []
