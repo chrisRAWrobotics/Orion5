@@ -1,5 +1,4 @@
 import threading
-import queue
 import serial
 import time
 import datetime as dt
@@ -11,10 +10,8 @@ DEBUG_MODE = 'PRINT'
 
 SERIAL_BAUD_RATE = 500000
 SERIAL_TIMEOUT = 1  # seconds
-QUEUE_SLEEP_TIME = 0.01  # seconds
 READ_INTERVAL = 0.1  # seconds
 
-QUEUE_LEN = 200
 READ_PACKET_LEN = 7
 
 CLAW_OPEN_POS = 300
@@ -73,7 +70,7 @@ class SerialThread(threading.Thread):
      when the pc receives a checkerlist packettype, it will go through the flag variable in the joint 
      dictionaries and
     '''
-    def __init__(self, orion5_reference, serialName, sendQueue, lock):
+    def __init__(self, orion5_reference, serialName):
         threading.Thread.__init__(self)
         self._outboxIterator = [['misc variables', [['cwAngleLimit', JointVars.CW_LIMIT, 2],
                                                     ['ccwAngleLimit', JointVars.CCW_LIMIT, 2],
@@ -87,9 +84,6 @@ class SerialThread(threading.Thread):
                                                       ['desiredSpeed', JointVars.SPEED, 2],
                                                       ['controlMode', JointVars.MODE, 1]]]]
         self._iter = [0, 0, 0]
-        self.arm = orion5_reference
-        self.sendQueue = sendQueue
-        self.lock = lock
         self.running = True
         self.uart = None
         self.lastReadTime = time.perf_counter()
@@ -141,9 +135,6 @@ class SerialThread(threading.Thread):
             debug("SerialThread: Thread already stopped")
 
     def main(self):
-        #self.processSend((1, JointVars.CHECKER, self._checker[0], self._checker[0]))
-
-        time.sleep(2)
 
         while self.running:
 
@@ -174,7 +165,7 @@ class SerialThread(threading.Thread):
             while self.uart.in_waiting > 8:
                 self.processRead()
 
-            time.sleep(0.05)
+            time.sleep(0.01)
 
     def CheckerAdvance(self):
         # Advance the Checker
@@ -388,9 +379,7 @@ class Joint(object):
 
 class Orion5(object):
     def __init__(self, serialName):
-        self.serialLock = threading.Lock()
-        self.sendQueue = queue.Queue(QUEUE_LEN)
-        self.serial = SerialThread(self, serialName, self.sendQueue, self.serialLock)
+        self.serial = SerialThread(self, serialName)
         self.serial.start()
 
         # name, ID, cwAngleLimit, ccwAngleLimit, margin, slope, punch, speed, mode
@@ -398,7 +387,7 @@ class Orion5(object):
         self.shoulder = Joint('shoulder', 1,  30, 1057, 1, 120,  35, 150, 0)
         self.elbow =    Joint('elbow',    2,  60, 1027, 1, 120,  35,  80, 0)
         self.wrist =    Joint('wrist',    3, 136,  951, 1, 120,  35,  60, 0)
-        self.claw =     Joint('claw',     4,  60,  1087, 1, 120,  35,  70, 0)
+        self.claw =     Joint('claw',     4,  60, 1087, 1, 120,  35,  70, 0)
 
         self.joints = [self.base, self.shoulder, self.elbow, self.wrist, self.claw]
 
@@ -443,8 +432,6 @@ class Orion5(object):
 
     def exit(self):
         debug("Orion5: exit: joining threads")
-        if self.serial.running:
-            self.sendQueue.join()
         self.serial.stop()
         self.serial.join()
         debug("Orion5: exit: finished")
