@@ -166,8 +166,9 @@ orion.setJointTorqueEnable(Orion5.BASE, 0)
 * We are considering adding the capability to alter the acceleration profile and torque settings etc from MATLAB.
 
 ## Python Visualiser Controller
-The `Orion5 Controller.py` program is a 3d controller and visualiser made in Python; it implements OpenGL for graphics rendering.  
-The visualiser is designed as an aid to understand the 5 degrees of freedom of Orion5, and also as a way to control the robotic arm visually.  
+The `Orion5 Controller.py` program is a 3d controller and visualiser made in Python; it implements OpenGL for graphics rendering.
+The visualiser is designed as an aid to understand the 5 degrees of freedom of Orion5, and also as a way to control the robotic arm visually.
+
 On launch the program will ask you to select a serial port, if you have an Orion5 connected select its serial port.  
 Users can drag the white squares (they are like scroll bars) to move the arm around using our 6 DoF controller.  
 The controller sets the tool-point of the robotic arm in cylindrical coordinates, along with tool attack configuration.
