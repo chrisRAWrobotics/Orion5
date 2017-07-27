@@ -65,7 +65,7 @@ all_positions = orion.getAllJointsPosition();
 ```
 
 #### Read all joint speeds
-This will return an array of 5 speeds, servo speed is represented as a 10 bit number (0-1023).
+This will return an array of 5 speeds, servo speed is represented as a 10 bit number (0-1023). 
 The conversion to RPM is shown in the example below.
 You can use the Joint ID constants to index this array.
 ```matlab
