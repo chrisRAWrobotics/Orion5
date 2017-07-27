@@ -198,71 +198,6 @@ class Window(pyglet.window.Window):
                          'Elbow',
                          'Wrist',
                          'Claw']}
-    _interferenceFields = [[[['Wrist', 29],
-                            {'x': 0, 'y': 27.834},
-                            {'x': -61, 'y': 27.834},
-                            {'x': -126, 'y': 13.6},
-                            {'x': -126, 'y': -13.6},
-                            {'x': -61, 'y': -27.834},
-                            {'x': 0, 'y': -27.834}],
-                           [['Forearm', 18],
-                            {'x': 0, 'y': 16.652},
-                            {'x': -98.347, 'y': 28.238},
-                            {'x': -136.46, 'y': 28.238},
-                            {'x': -158.307, 'y': 20.173},
-                            {'x': -158.307, 'y': -20.173},
-                            {'x': -136.46, 'y': -28.238},
-                            {'x': -98.347, 'y': -28.238},
-                            {'x': 0, 'y': -16.652}],
-                           [['Bicep', 18],
-                            {'x': 0, 'y': 16},
-                            {'x': -126.2, 'y': 27.686},
-                            {'x': -171.415, 'y': 27.686},
-                            {'x': -192.384, 'y': 20.243},
-                            {'x': -192.384, 'y': -20.243},
-                            {'x': -171.415, 'y': -27.686},
-                            {'x': -126.2, 'y': -27.686},
-                            {'x': 0, 'y': -16}],
-                           [['Turret',66/2],
-                            {'x': -9.55-30.309, 'y': 29.5+53},
-                            {'x': -31.1-30.309, 'y': 7.95+53},
-                            {'x': -31.1-30.309, 'y': -10.047+53},
-                            {'x': -22.807-30.309, 'y': -53+53},
-                            {'x': 83.426-30.309, 'y': -53+53},
-                            {'x': 80.509-30.309, 'y': 24.55+53},
-                            {'x': 75.917-30.309, 'y': 29.5+53}
-                            ]],
-                           [[{'x': 0, 'y': 27.834},
-                             {'x': -61, 'y': 27.834},
-                             {'x': -126, 'y': 13.6},
-                             {'x': -126, 'y': -13.6},
-                             {'x': -61, 'y': -27.834},
-                             {'x': 0, 'y': -27.834}],
-                            [{'x': 0, 'y': 16.652},
-                             {'x': -98.347, 'y': 28.238},
-                             {'x': -136.46, 'y': 28.238},
-                             {'x': -158.307, 'y': 20.173},
-                             {'x': -158.307, 'y': -20.173},
-                             {'x': -136.46, 'y': -28.238},
-                             {'x': -98.347, 'y': -28.238},
-                             {'x': 0, 'y': -16.652}],
-                            [{'x': 0, 'y': 16},
-                             {'x': -126.2, 'y': 27.686},
-                             {'x': -171.415, 'y': 27.686},
-                             {'x': -192.384, 'y': 20.243},
-                             {'x': -192.384, 'y': -20.243},
-                             {'x': -171.415, 'y': -27.686},
-                             {'x': -126.2, 'y': -27.686},
-                             {'x': 0, 'y': -16}],
-                            [{'x': -9.55 - 30.309, 'y': 29.5 + 53},
-                             {'x': -31.1 - 30.309, 'y': 7.95 + 53},
-                             {'x': -31.1 - 30.309, 'y': -10.047 + 53},
-                             {'x': -22.807 - 30.309, 'y': -53 + 53},
-                             {'x': 83.426 - 30.309, 'y': -53 + 53},
-                             {'x': 80.509 - 30.309, 'y': 24.55 + 53},
-                             {'x': 75.917 - 30.309, 'y': 29.5 + 53}
-                             ]]
-                           ]
     arm = None
     _ModelIDs = []
     _ColourBank = []
@@ -290,12 +225,19 @@ class Window(pyglet.window.Window):
         global arm
         super(Window, self).__init__(width, height, title, resizable=True)
 
-        # get reference to functions from C library
-        clib = ctypes.cdll.LoadLibrary('libOrion5Kinematics.dll')
+        # select libExtension based on platform
+        libExtension = '.dll' # windows as default
+        if sys.platform == 'darwin':
+            libName = '.dylib' # Mac OS
+        elif 'linux' in sys.platform:
+            libExtension = '.so'# linux based
+
+        # load functions from C dynamic library
+        clib = ctypes.cdll.LoadLibrary('Libraries/libOrion5Kinematics' + libExtension)
         self.IKinematics = clib.IKinematics
         self.IKinematics.restype = C_ArmVars
-        # self.CollisionCheck = clib.CollisionCheck
-        # self.CollisionCheck.restype = clib.c_int
+        self.CollisionCheck = clib.CollisionCheck
+        self.CollisionCheck.restype = ctypes.c_int
 
         self._window = [WINDOW[0], WINDOW[1]]
         self.set_minimum_size(self._window[0], self._window[1])
@@ -378,13 +320,6 @@ class Window(pyglet.window.Window):
                                     'Turret',
                                     0]}
         self._controlsize = self._zonewidth * self._controlscaler
-        for item1 in self._interferenceFields[0]:
-            #print('new')
-            for item2 in item1[1:]:
-                item2['theta'] = rect2pol(item2['x'], item2['y'], False)
-                item2['r'] = rect2pol(item2['x'], item2['y'], True)
-                '''print(item2['r'], item2['theta'], item2['x'], item2['y'],
-                      pol2rect(item2['r'], item2['theta'], True), pol2rect(item2['r'], item2['theta'], False))'''
 
         glClearColor(0, 0, 0, 1)
         glEnable(GL_DEPTH_TEST)
@@ -784,85 +719,6 @@ class Window(pyglet.window.Window):
             self._Objects[iterator1].draw()
             glDisable(GL_COLOR_MATERIAL)
 
-    def CheckPoly(self, poly1, poly2):
-        retValue = False
-        #does something from poly2 exist in poly1
-        for item in poly2:
-            insidePoly = True
-            for iterator in range(len(poly1)):
-                pointO = {'x': poly1[iterator]['x'],
-                          'y': poly1[iterator]['y']}
-                pointA = {'x': poly1[iterator - 1]['x'] - pointO['x'],
-                          'y': poly1[iterator - 1]['y'] - pointO['y']}
-                pointB = {'x': item['x'] - pointO['x'],
-                          'y': item['y'] - pointO['y']}
-                insidePoly = insidePoly and ((pointA['x'] * pointB['y'] - pointA['y'] * pointB['x']) < 0)
-            #print('poly1',insidePoly, item, poly1)
-            retValue = retValue or insidePoly
-        # does something from poly1 exist in poly2
-        for item in poly1:
-            insidePoly = True
-            for iterator in range(len(poly2)):
-                pointO = {'x': poly2[iterator]['x'],
-                          'y': poly2[iterator]['y']}
-                pointA = {'x': poly2[iterator - 1]['x'] - pointO['x'],
-                          'y': poly2[iterator - 1]['y'] - pointO['y']}
-                pointB = {'x': item['x'] - pointO['x'],
-                          'y': item['y'] - pointO['y']}
-                insidePoly = insidePoly and ((pointA['x'] * pointB['y'] - pointA['y'] * pointB['x']) < 0)
-            #print('poly2',insidePoly, item, poly2)
-            retValue = retValue or insidePoly
-        #print('\nresult', retValue)
-        return retValue
-
-    def Collision_Check(self):
-        #check against limits
-        minMax = [{'id': 'Wrist', 'min': 45, 'max': 315},
-                  {'id': 'Elbow', 'min': 15, 'max': 345},
-                  {'id': 'Shoulder', 'min': 0, 'max': 120}]
-        for iterator1 in range(3):
-            if not (self._armVARS[minMax[iterator1]['id']] > minMax[iterator1]['min']
-                    and self._armVARS[minMax[iterator1]['id']] < minMax[iterator1]['max']):
-                #print(minMax[iterator1]['id'], self._armVARS[minMax[iterator1]['id']])
-                return True
-
-        # check polygon hits
-        iterBank = [['Attack Angle','Elbow Angle', 'Shoulder'],['Wrist Pos', 'Elbow Pos', 'Shoulder Pos'], [-1,-1,-1]]
-        for iterator1 in range(3):
-            #print('Thing', iterator1)
-            for iterator2 in range(len(self._interferenceFields[1][iterator1])):
-                # Rotate the polygons
-                self._interferenceFields[1][iterator1][iterator2]['x'] = pol2rect(self._interferenceFields[0][iterator1][iterator2 + 1]['r'],
-                                                                                  wrap360f(self._interferenceFields[0][iterator1][iterator2 + 1]['theta']
-                                                                                           + (self._armVARS[iterBank[0][iterator1]] * iterBank[2][iterator1])),
-                                                                                  True)
-                self._interferenceFields[1][iterator1][iterator2]['y'] = pol2rect(self._interferenceFields[0][iterator1][iterator2 + 1]['r'],
-                                                                                  wrap360f(self._interferenceFields[0][iterator1][iterator2 + 1]['theta']
-                                                                                           + (self._armVARS[iterBank[0][iterator1]] * iterBank[2][iterator1])),
-                                                                                  False)
-                '''print(int(self._interferenceFields[0][iterator1][iterator2+1]['x']),
-                      int(self._interferenceFields[1][iterator1][iterator2]['x']),
-                      int(self._interferenceFields[0][iterator1][iterator2+1]['y']),
-                      int(self._interferenceFields[1][iterator1][iterator2]['y']))'''
-                # translate the polygons
-                self._interferenceFields[1][iterator1][iterator2]['x'] += self._armVARS[iterBank[1][iterator1]][0]
-                self._interferenceFields[1][iterator1][iterator2]['y'] += self._armVARS[iterBank[1][iterator1]][2]
-        if (self.CheckPoly(self._interferenceFields[1][0],
-                           self._interferenceFields[1][2]) or
-                (self.CheckPoly(self._interferenceFields[1][0],
-                                self._interferenceFields[1][3]) or
-                     (self.CheckPoly(self._interferenceFields[1][1],
-                                self._interferenceFields[1][3])))):
-            '''print(self.CheckPoly(self._interferenceFields[1][0], self._interferenceFields[1][2]),
-                  self.CheckPoly(self._interferenceFields[1][0], self._interferenceFields[1][3]),
-                  self.CheckPoly(self._interferenceFields[1][1], self._interferenceFields[1][3]),
-                  '\n', self._armVARS['Attack Angle'], self._armVARS['Wrist Pos'], self._interferenceFields[1][0],
-                  '\n', self._armVARS['Elbow Angle'], self._armVARS['Elbow Pos'], self._interferenceFields[1][1],
-                  '\n', self._armVARS['Shoulder'], self._armVARS['Shoulder Pos'], self._interferenceFields[1][2],
-                  '\n', self._interferenceFields[1][3])'''
-            return True
-        return False
-
     def on_text_motion(self, motion, BLAH = False, Setting = None):
         global arm
         #Check the keypress
@@ -897,26 +753,8 @@ class Window(pyglet.window.Window):
                         self._armVARS[item[1]] = armConstants[item[1] + ' lims'][2]
         try:
 
-            # create instance of the struct class to hand into C library
-            c_armVars = C_ArmVars()
-
-            # pack values from armVARS into c_armVars
-            for key in self._armVARS['Iter']:
-                value = self._armVARS[key]
-                if type(value) == list:
-                    value = (ctypes.c_double * 3)(value[0], value[1], value[2])
-                else:
-                    value = ctypes.c_double(value)
-                setattr(c_armVars, key.replace(' ', ''), value)
-
-            c_armVars = self.IKinematics(c_armVars)
-
-            for key in self._armVARS['Iter']:
-                value = getattr(c_armVars, key.replace(' ', ''))
-                if type(value) == float:
-                    self._armVARS[key] = value
-                else:
-                    self._armVARS[key] = [value[0], value[1], value[2]]
+            c_armVars = self.IKinematics(self.PythonArmVarsToC());
+            self.CArmVarsToPython(c_armVars);
 
         except Exception as e:
             print(e)
@@ -927,7 +765,8 @@ class Window(pyglet.window.Window):
                     for iterator in range(len(self._armVARS[item])):
                         self._armVARS[item][iterator] = 0.0 + self._armVARS['OLD'][item][iterator]
             return
-        if self.Collision_Check():
+
+        if self.CollisionCheck(self.PythonArmVarsToC()):
             for item in self._armVARS['Iter']:
                 if ((type(self._armVARS['OLD'][item]) == float) or (type(self._armVARS['OLD'][item]) == int)):
                     self._armVARS[item] = 0.0 + self._armVARS['OLD'][item]
@@ -966,6 +805,28 @@ class Window(pyglet.window.Window):
                                  * thepercent
                                  + self._ControlVars[self._Controls[0][self.controlState[1] - 1]][4])
                                 )
+
+
+    def PythonArmVarsToC(self):
+        c_armVars = C_ArmVars()
+        for key in self._armVARS['Iter']:
+            value = self._armVARS[key]
+            if type(value) == list:
+                value = (ctypes.c_double * 3)(value[0], value[1], value[2])
+            else:
+                value = ctypes.c_double(value)
+            setattr(c_armVars, key.replace(' ', ''), value)
+        return c_armVars
+
+
+    def CArmVarsToPython(self, c_armVars):
+        for key in self._armVARS['Iter']:
+            value = getattr(c_armVars, key.replace(' ', ''))
+            if type(value) == float:
+                self._armVARS[key] = value
+            else:
+                self._armVARS[key] = [value[0], value[1], value[2]]
+
 
 # C compatible structure from armVARS dictionary
 # not including the OLD and Iter sections
