@@ -7,7 +7,7 @@ def STLRead(Models, fileName, offset, rotation, ModelID, ColorID = 1):
     floatLength = 4
     endLength = 2
     header = filePipe.read(headerLength)
-    facetNo = struct.unpack('L', filePipe.read(4))[0]
+    facetNo = struct.unpack('I', filePipe.read(4))[0]
     Models.append([[offset,rotation, ModelID, colorcodes[ColorID]],[]])
     for data in range(facetNo):
         try:
