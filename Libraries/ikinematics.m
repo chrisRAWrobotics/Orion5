@@ -5,6 +5,7 @@ function [joints, message] = ikinematics(radius, theta, height, attack, claw)
     wrist_length = 85;
     shoulder_radial_offset = 30.309;
     shoulder_z_offset = 53;
+    message = '';
     
     [t, r] = cart2pol(shoulder_radial_offset, shoulder_z_offset);
     [x0, y0, z0] = sph2cart(deg2rad(theta), t, r);
@@ -34,7 +35,7 @@ function [joints, message] = ikinematics(radius, theta, height, attack, claw)
     B = 180 - A - C;
     
     % find joint angles relative to each joint
-    joints(1) = tool_point(2); % base
+    joints(1) = wrapTo360(tool_point(2)); % base
     joints(2) = A + rad2deg(theta); % shoulder
     joints(3) = C; % elbow
     joints(4) = wrapTo360(attack + B + (180 - rad2deg(theta))); % wrist
@@ -56,12 +57,17 @@ function [joints, message] = ikinematics(radius, theta, height, attack, claw)
     [x2, y2, z2] = sph2cart(deg2rad(joints(1)), deg2rad(joints(2)+joints(3)-180), forearm_length);
     [x3, y3, z3] = sph2cart(deg2rad(joints(1)), deg2rad(joints(2)+joints(3)+joints(4)), wrist_length);
     plot3([0 x0 x0+x1 x0+x1+x2 x0+x1+x2+x3], [0 y0 y0+y1 y0+y1+y2 y0+y1+y2+y3], [0 z0 z0+z1 z0+z1+z2 z0+z1+z2+z3], '-bo'); hold on;
-	% plot3([x0 x0+x1+x2], [y0 y0+y1+y2], [z0 z0+z1+z2], '-r');
+	plot3([x0 x0+x1+x2], [y0 y0+y1+y2], [z0 z0+z1+z2], '-r');
     hold off;
     xlim([-300 300]); ylim([-300 300]); zlim([0 600]);
     xlabel('X'); ylabel('Y'); zlabel('Z');
     grid on; grid minor;
     axis vis3d;
+    
+    figure(2); hold on;
+    plot(x0+x1+x2+x3, y0+y1+y2+y3, 'rx');
+    xlim([-300 300]); ylim([-300 300]); zlim([0 600]);
+    grid on; grid minor;
     
     joints(2) = wrapTo360(joints(2) * 2.857);
 end
